@@ -1,10 +1,3 @@
-/*
-  Simple sample of PICO-8 LikeLibrary for C/C++.
-
-  A yellow round-faced character (Foo) walks randomly.
-  You can also operate it with the PC keyboard arrow keys.
-  On smartphones, you cannot operate it because there is no keyboard.
-*/
 #include <pico8.h>
 
 using namespace std;  
@@ -20,10 +13,18 @@ static  ReqReset  reqReset = RESET_NIL;
 
 static  Vec cam;
 
-static  constexpr u8  SPR_FLYER       = 4;
+static  constexpr u8  SPR_FLYER         = 4;
+static  constexpr u8  SPR_GROUND_GREEN  = 9;
+static  constexpr u8  SPR_GROUND        = 8;
+
+static  constexpr u8  SPR_ICE       = 10;
+static  constexpr u8  SPR_PIPE      = 25;
+static  constexpr u8  SPR_PIPELINE  = 81;
 
 static  constexpr u8  PAL_COIN_BLINK = 3;
 static  constexpr u8  PAL_SHADOW     = 4;
+
+static  constexpr u8  YT_GROUND = 23;
 
 static  int frame = 0;
 
@@ -34,6 +35,7 @@ extern  const uint8_t  b8_image_sprite0[];
 // Foo's position
 static  Vec pos_flyer;
 static  int xgen_map;
+static  int ygen;
 
 // Foo's velocity
 static  Vec v_flyer;
@@ -60,15 +62,22 @@ static  void  init() {
 static  void  genMap(){
   int xdst = pos_flyer.x + 192;
   while( xgen_map < xdst ){
-    printf( "xgen_map=%d\n", xgen_map );
-
     const u32 xt = (xgen_map >> 3) & (XTILES-1);
+    mset(xt,0,SPR_ICE);
 
-mset(xt,23,9);
-mset(xt,24,8);
-
-
+    mset(xt,YT_GROUND,  SPR_GROUND_GREEN);
+    mset(xt,YT_GROUND+1,SPR_GROUND);
     xgen_map += 8; 
+
+    if( !(xt & 7) ){
+      const int yt = ygen>>3;
+
+      const int ybottom = yt + 3;
+      for( int yy=ybottom+1 ; yy<YT_GROUND ; ++yy ){
+        mset(xt,  yy,SPR_PIPELINE);
+        mset(xt+1,yy,SPR_PIPELINE+1);
+      }
+    }
   }
 }
 
@@ -83,6 +92,7 @@ static  void  update() {
       case  RESET_GAME:{
         pos_flyer.set(0,64);
         xgen_map = pos_flyer.x - 64;
+        ygen = pos_flyer.y;
         b8PpuBgTile tile = {};
         tile.XTILE = 0;
         tile.YTILE = 2;
@@ -151,35 +161,13 @@ static void blinkCoin() {
 }
 
 class Pico8App : public Pico8 {
-  // Initialization function called only once at startup.
-  void _init() override {
-    // In this sample we call init() for a C-style implementation,
-    // but implementing directly in this member function _init()
-    // would be more C++-style.
-    init();
-  }
-
-  // Called every 1/60th of a second.
-  // Only internal status updates are allowed.
-  // Drawing operations are not allowed here.
-  void _update() override {
-    update();
-  }
-
-  // Called every 1/60th of a second.
-  // Perform drawing of internal status here.
-  void _draw() override {
-    draw();
-  }
-
-public:
-  virtual ~Pico8App(){}
+  void _init() override { init(); }
+  void _update() override { update(); }
+  void _draw() override { draw(); }
+public: virtual ~Pico8App(){}
 };
-
-// main() for C/C++ language.
-// Magic incantation to run the PICO-8 library.
 int main() {
   Pico8App app;
-  app.run();  // ::run() enters an infinite loop.
+  app.run();
   return 0;
 }
