@@ -21,6 +21,19 @@ static  constexpr u8  SPR_ICE       = 10;
 static  constexpr u8  SPR_PIPE      = 25;
 static  constexpr u8  SPR_PIPELINE  = 81;
 
+static  constexpr b8PpuBgTile BG_TILE_PIPE_L = {
+  .YTILE = 1, .XTILE = 9,
+};
+static  constexpr b8PpuBgTile BG_TILE_PIPE_R = {
+  .YTILE = 1, .XTILE = 10,
+};
+static  constexpr b8PpuBgTile BG_TILE_PIPE_L_VFLIP = {
+  .YTILE = 1, .XTILE = 9,.VFP = 1
+};
+static  constexpr b8PpuBgTile BG_TILE_PIPE_R_VFLIP = {
+  .YTILE = 1, .XTILE = 10,.VFP = 1
+};
+
 static  constexpr u8  PAL_COIN_BLINK = 3;
 static  constexpr u8  PAL_SHADOW     = 4;
 
@@ -63,17 +76,25 @@ static  void  genMap(){
   int xdst = pos_flyer.x + 192;
   while( xgen_map < xdst ){
     const u32 xt = (xgen_map >> 3) & (XTILES-1);
-    mset(xt,0,SPR_ICE);
-
     mset(xt,YT_GROUND,  SPR_GROUND_GREEN);
     mset(xt,YT_GROUND+1,SPR_GROUND);
     xgen_map += 8; 
 
     if( !(xt & 7) ){
+      int yy;
       const int yt = ygen>>3;
+      const int ytop = yt - 3;
+      for( yy=0 ; yy<ytop ; ++yy ){
+        mset(xt,  yy,SPR_PIPELINE);
+        mset(xt+1,yy,SPR_PIPELINE+1);
+      }
+      msett(xt,  ytop,BG_TILE_PIPE_L_VFLIP); 
+      msett(xt+1,ytop,BG_TILE_PIPE_R_VFLIP);
 
       const int ybottom = yt + 3;
-      for( int yy=ybottom+1 ; yy<YT_GROUND ; ++yy ){
+      msett(xt,  ybottom,BG_TILE_PIPE_L); 
+      msett(xt+1,ybottom,BG_TILE_PIPE_R);
+      for( yy=ybottom+1 ; yy<YT_GROUND ; ++yy ){
         mset(xt,  yy,SPR_PIPELINE);
         mset(xt+1,yy,SPR_PIPELINE+1);
       }
