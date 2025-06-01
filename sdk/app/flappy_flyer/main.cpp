@@ -15,7 +15,7 @@ static  constexpr u8  SPR_PIPELINE      = 16;
 static  constexpr u8  SPR_TITLE         = 80;
 static  constexpr u8  SPR_SENSOR        = 10;
 
-static  constexpr fx8 VJUMP(-3);
+static  constexpr fx8 VJUMP(-29,10);
 static  constexpr fx8 GRAVITY(17,100);
 
 static  constexpr b8PpuBgTile BG_TILE_PIPE_L = {.YTILE=1, .XTILE=9, };
@@ -41,7 +41,7 @@ static  Vec cam;
 static  Vec pos_flyer;
 static  Vec v_flyer;
 static  int xgen_map;
-static  int ygen;
+static  fx8 ygen;
 static  bool dead;
 static  bool req_red = false;
 static  u8 dcnt_stop_update = 0;
@@ -57,11 +57,10 @@ static  u8  getv(b8PpuBgTile tile ) {
 
 static  void  init() {
   extern  const uint8_t  b8_image_sprite0[];
-  hi_score = 50;
+  hi_score = 53;
   lsp(0, b8_image_sprite0);
   mapsetup(XTILES, YTILES,std::nullopt,B8_PPU_BG_WRAP_REPEAT,B8_PPU_BG_WRAP_REPEAT);
 
-  #if 1
   fset( getv(BG_TILE_PIPE_L) ,        0xff, FLAG_WALL);
   fset( getv(BG_TILE_PIPE_R) ,        0xff, FLAG_WALL);
   fset( getv(BG_TILE_PIPE_L_VFLIP) ,  0xff, FLAG_WALL);
@@ -70,8 +69,6 @@ static  void  init() {
   fset( SPR_GROUND_GREEN,             0xff, FLAG_WALL);
   fset( SPR_PIPELINE  ,               0xff, FLAG_WALL);
   fset( SPR_PIPELINE+1,               0xff, FLAG_WALL);
-  #endif
-
   fset( SPR_SENSOR,0xff,FLAG_SENSOR);
 
   reqReset = RESET_GAME;;
@@ -96,7 +93,7 @@ static  void  genMap(){
         mset(xt+1,yy,SPR_EMPTY);
       }
 
-      const int yt = ygen>>3;
+      const int yt = int(ygen)>>3;
       const int ytop = yt - 3;
       for( yy=0 ; yy<ytop ; ++yy ){
         mset(xt,  yy,SPR_PIPELINE);
@@ -105,18 +102,52 @@ static  void  genMap(){
       msett(xt,  ytop,BG_TILE_PIPE_L_VFLIP); 
       msett(xt+1,ytop,BG_TILE_PIPE_R_VFLIP);
 
-      const int ybottom = yt + 3;
-      msett(xt,  ybottom,BG_TILE_PIPE_L); 
-      msett(xt+1,ybottom,BG_TILE_PIPE_R);
-      for( yy=ybottom+1 ; yy<YT_GROUND ; ++yy ){
-        mset(xt,  yy,SPR_PIPELINE);
-        mset(xt+1,yy,SPR_PIPELINE+1);
+      int span = 8;
+      if( score <= 10){
+        span = 8;
+      } else if ( score <=20 ){
+        static const int values[] = {8,7,7,7,6};
+        span = rndt(values);
+      } else if ( score <= 50 ){
+        static const int values[] = {7,6,7,7,7};
+        span = rndt(values);
+      } else if ( score <= 75 ){
+        static const int values[] = {8,7,6,6,7,6,6};
+        span = rndt(values);
+      } else if ( score <= 100 ){
+        static const int values[] = {7,7,6,6,6,6,6};
+        span = rndt(values);
+      }  else if ( score <= 110 ){
+        static const int values[] = {9,8,8,7};
+        span = rndt(values);
+      } else if ( score <= 140 ){
+        static const int values[] = {7,6,6,6,6};
+        span = rndt(values);
+      } else if ( score <= 180 ){
+        static const int values[] = {6,6,6,6,5};
+        span = rndt(values);
+      } else {
+        static const int values[] = {6,6,5,5,5};
+        span = rndt(values);
+      }
+
+      const int ybottom = ytop + span;
+      if( ybottom < YT_GROUND ){ 
+        msett(xt,  ybottom,BG_TILE_PIPE_L); 
+        msett(xt+1,ybottom,BG_TILE_PIPE_R);
+        for( yy=ybottom+1 ; yy<YT_GROUND ; ++yy ){
+          mset(xt,  yy,SPR_PIPELINE);
+          mset(xt+1,yy,SPR_PIPELINE+1);
+        }
       }
 
       // sensor
       for( yy=ytop+1 ; yy<=ybottom-1 ; ++yy ){
         mset(xt+1,yy,SPR_SENSOR);
       }
+
+      ygen += pico8::rnd(96)-fx8(48);
+      ygen = pico8::mid(ygen ,32, (YT_GROUND<<3)-48 );
     }
   }
 }
