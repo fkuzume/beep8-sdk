@@ -7,6 +7,7 @@ enum ReqReset { RESET_NIL, RESET_TITLE, RESET_GAME };
 
 static  constexpr u8  FLAG_WALL = 1;
 static  constexpr u8  FLAG_SENSOR = 2;
+static  constexpr u8  SPR_EMPTY         = 0;
 static  constexpr u8  SPR_FLYER         = 4;
 static  constexpr u8  SPR_GROUND_GREEN  = 9;
 static  constexpr u8  SPR_GROUND        = 8;
@@ -80,13 +81,21 @@ static  void  init() {
 static  void  genMap(){
   int xdst = pos_flyer.x + 192;
   while( xgen_map < xdst ){
+    int yy;
     const u32 xt = (xgen_map >> 3) & (XTILES-1);
     mset(xt,YT_GROUND,  SPR_GROUND_GREEN);
-    mset(xt,YT_GROUND+1,SPR_GROUND);
+    for( yy=YT_GROUND+1 ; yy<YTILES ; ++yy ){
+      mset(xt,yy,SPR_GROUND);
+    }
+
     xgen_map += 8; 
 
     if( !(xt & 7) && xgen_map > 128 ){
-      int yy;
+      for( yy=0 ; yy<YT_GROUND ; ++yy ){
+        mset(xt,  yy,SPR_EMPTY);
+        mset(xt+1,yy,SPR_EMPTY);
+      }
+
       const int yt = ygen>>3;
       const int ytop = yt - 3;
       for( yy=0 ; yy<ytop ; ++yy ){
