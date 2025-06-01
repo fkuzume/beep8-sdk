@@ -6,11 +6,13 @@ using namespace pico8;
 enum ReqReset { RESET_NIL, RESET_TITLE, RESET_GAME };
 
 static  constexpr u8  FLAG_WALL = 1;
+static  constexpr u8  FLAG_SENSOR = 2;
 static  constexpr u8  SPR_FLYER         = 4;
 static  constexpr u8  SPR_GROUND_GREEN  = 9;
 static  constexpr u8  SPR_GROUND        = 8;
 static  constexpr u8  SPR_PIPELINE      = 16;
 static  constexpr u8  SPR_TITLE         = 80;
+static  constexpr u8  SPR_SENSOR        = 10;
 
 static  constexpr fx8 VJUMP(-3);
 static  constexpr fx8 GRAVITY(17,100);
@@ -57,14 +59,18 @@ static  void  init() {
   lsp(0, b8_image_sprite0);
   mapsetup(XTILES, YTILES,std::nullopt,B8_PPU_BG_WRAP_REPEAT,B8_PPU_BG_WRAP_REPEAT);
 
-  fset( getv(BG_TILE_PIPE_L) ,        FLAG_WALL, 1);
-  fset( getv(BG_TILE_PIPE_R) ,        FLAG_WALL, 1);
-  fset( getv(BG_TILE_PIPE_L_VFLIP) ,  FLAG_WALL, 1);
-  fset( getv(BG_TILE_PIPE_R_VFLIP) ,  FLAG_WALL, 1);
-  fset( SPR_GROUND,FLAG_WALL, 1);
-  fset( SPR_GROUND_GREEN ,FLAG_WALL, 1);
-  fset( SPR_PIPELINE  ,FLAG_WALL,1);
-  fset( SPR_PIPELINE+1,FLAG_WALL,1);
+  #if 1
+  fset( getv(BG_TILE_PIPE_L) ,        0xff, FLAG_WALL);
+  fset( getv(BG_TILE_PIPE_R) ,        0xff, FLAG_WALL);
+  fset( getv(BG_TILE_PIPE_L_VFLIP) ,  0xff, FLAG_WALL);
+  fset( getv(BG_TILE_PIPE_R_VFLIP) ,  0xff, FLAG_WALL);
+  fset( SPR_GROUND,                   0xff, FLAG_WALL);
+  fset( SPR_GROUND_GREEN,             0xff, FLAG_WALL);
+  fset( SPR_PIPELINE  ,               0xff, FLAG_WALL);
+  fset( SPR_PIPELINE+1,               0xff, FLAG_WALL);
+  #endif
+
+  fset( SPR_SENSOR,0xff,FLAG_SENSOR);
 
   reqReset = RESET_GAME;;
   reqReset = RESET_TITLE;;
@@ -96,17 +102,22 @@ static  void  genMap(){
         mset(xt,  yy,SPR_PIPELINE);
         mset(xt+1,yy,SPR_PIPELINE+1);
       }
+
+      // sensor
+      for( yy=ytop+1 ; yy<=ybottom-1 ; ++yy ){
+        mset(xt+1,yy,SPR_SENSOR);
+      }
     }
   }
 }
 
-static  bool  chkIfCollide() {
+static  u8  chkIfCollide() {
   return  fget(
     mget(
       (static_cast< u32 >( pos_flyer.x ) >> 3) & (XTILES-1),
       (static_cast< u32 >( pos_flyer.y ) >> 3) & (YTILES-1)
     ),
-    FLAG_WALL
+    0xff
   );
 }
 
@@ -157,9 +168,8 @@ static  void  update() {
 
       pos_flyer.y = pico8::max( pos_flyer.y , 0 );
 
-
       if( !dead ){
-        req_red = dead = chkIfCollide();
+        req_red = dead = (chkIfCollide() == FLAG_WALL);
         if( dead ){
           dcnt_stop_update = 7;
         }
