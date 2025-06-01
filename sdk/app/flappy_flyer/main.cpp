@@ -3,14 +3,7 @@
 using namespace std;  
 using namespace pico8;  
 
-extern  const uint8_t  b8_image_sprite0[];
-
-enum ReqReset {
-  RESET_NIL,
-  /* --- */
-  RESET_TITLE,
-  RESET_GAME,
-};
+enum ReqReset { RESET_NIL, RESET_TITLE, RESET_GAME };
 
 static  constexpr u8  FLAG_WALL = 1;
 static  constexpr u8  SPR_FLYER         = 4;
@@ -34,12 +27,12 @@ static  constexpr BgTiles XTILES = TILES_32;
 static  constexpr BgTiles YTILES = TILES_32;
 static  constexpr array<unsigned char, 16> palette_shadow = {0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
 
-// work memory
+// work ram
 static  int frame = 0;
 static  ReqReset  reqReset = RESET_NIL;
 static  ReqReset  status = RESET_NIL;
 
-// game work
+// game work ram
 static  Vec cam;
 static  Vec pos_flyer;
 static  Vec v_flyer;
@@ -48,14 +41,15 @@ static  int ygen;
 static  bool dead;
 static  bool req_red = false;
 static  u8 dcnt_stop_update = 0;
-
-static  void  blinkCoin();
+static  int score;
+static  int disp_score;
 
 static  u8  getv(b8PpuBgTile tile ) {
   return  (tile.YTILE<<4) + tile.XTILE;
 } 
 
 static  void  init() {
+  extern  const uint8_t  b8_image_sprite0[];
   lsp(0, b8_image_sprite0);
   mapsetup(XTILES, YTILES,std::nullopt,B8_PPU_BG_WRAP_REPEAT,B8_PPU_BG_WRAP_REPEAT);
 
@@ -121,11 +115,14 @@ static  void  update() {
       case  RESET_TITLE:{
       }break;
       case  RESET_GAME:{
+
         pos_flyer.set(0,64);
         v_flyer.set(fx8(2,2),0);
         xgen_map = pos_flyer.x - 64;
         ygen = pos_flyer.y;
         dead = false;
+        score  = 0;
+        disp_score = -1;
         b8PpuBgTile tile = {};
         mcls(tile);
         genMap();
@@ -185,9 +182,6 @@ static  void  draw() {
   // 0 is frontmost, maxz() is backmost.
   setz(maxz());
 
-  // Palette animation to make the coin sparkle.
-  blinkCoin();
-
   camera(cam.x, cam.y);
   genMap();
 
@@ -200,32 +194,24 @@ static  void  draw() {
   const u8 palsel = 1;
   pal(WHITE, BLACK, palsel);
 
+
   // Draw the yellow round-faced Foo sprite.
   switch( status ){
     case  RESET_NIL:
     case  RESET_TITLE:
+      print("\e[3;7H    ");
       break;
-    case  RESET_GAME:
-      spr(SPR_FLYER, pos_flyer.x-8, pos_flyer.y-8, 2, 2, false, dead );
-      break;
+    case  RESET_GAME:{
+      const u8 anm = dead ? 0 : ((static_cast< u32 >( pos_flyer.y ) >> 3) & 1)<<1;
+      spr(SPR_FLYER + anm, pos_flyer.x-8, pos_flyer.y-8, 2, 2, false, dead );
+
+      if( score != disp_score ){
+        disp_score = score; 
+        print("\e[3;7H%d",disp_score);
+      }
+    }break;
   }
 }
-
-// Palette animation data for coin blinking
-constexpr size_t PaletteCount = 3;
-constexpr size_t PaletteSize  = 16;
-const array<array<unsigned char, PaletteSize>, PaletteCount> palettes = {{
-  {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15},
-  {0,1,2,3,4,5,6,10,8,4,9,11,12,13,14,15},
-  {0,1,2,3,4,5,6,9,8,9,4,11,12,13,14,15},
-}};
-static const u8 idx_coin[8] = {0,0,0,0,1,2,2,1};
-static void blinkCoin() {
-  const u8 idx = idx_coin[(frame>>2)&7];
-  const auto& pal = palettes[idx];
-  setpal(PAL_COIN_BLINK, pal);
-}
-
 class Pico8App : public Pico8 {
   void _init() override { init(); }
   void _update() override { update(); }
