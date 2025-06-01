@@ -14,6 +14,7 @@ static  constexpr u8  SPR_GROUND        = 8;
 static  constexpr u8  SPR_PIPELINE      = 16;
 static  constexpr u8  SPR_TITLE         = 80;
 static  constexpr u8  SPR_SENSOR        = 10;
+static  constexpr u8  SPR_CLOUD         = 12;
 
 static  constexpr fx8 VJUMP(-29,10);
 static  constexpr fx8 GRAVITY(17,100);
@@ -250,7 +251,7 @@ static  void  draw() {
 
   // Applies depth setting to all subsequent draw calls:
   // 0 is frontmost, maxz() is backmost.
-  setz(maxz());
+  setz(maxz()-1);
 
   camera(cam.x, cam.y);
   genMap();
@@ -272,7 +273,7 @@ static  void  draw() {
       setz(1);
       spr(SPR_TITLE,4, pico8::min(48,(cnt_title*3)-32),15,4);
       const u8 anm = ((cnt_title>>3)&1)<<1;
-      spr(SPR_FLYER + anm, (cnt_title-8)&127, 140, 2, 2);
+      spr(SPR_FLYER + anm, (cnt_title+44)&255, 140, 2, 2);
     }break;
     case  RESET_GAME:{
       const u8 anm = dead ? 0 : ((static_cast< u32 >( pos_flyer.y ) >> 3) & 1)<<1;
@@ -280,10 +281,14 @@ static  void  draw() {
 
       if( score != disp_score ){
         disp_score = score; 
-        print("\e[3;7H%d",disp_score);
+        print("\e[21;1H%d",disp_score);
       }
     }break;
   }
+
+  camera();
+  setz(maxz());
+  spr(SPR_CLOUD, (((255-(frame>>2)))&255)-64,7,4,4);
 }
 class Pico8App : public Pico8 {
   void _init() override { init(); }
