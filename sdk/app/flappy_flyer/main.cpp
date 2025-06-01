@@ -13,6 +13,8 @@ static  ReqReset  reqReset = RESET_NIL;
 
 static  Vec cam;
 
+static  constexpr u8  FLAG_WALL = 1;
+
 static  constexpr u8  SPR_FLYER         = 4;
 static  constexpr u8  SPR_GROUND_GREEN  = 9;
 static  constexpr u8  SPR_GROUND        = 8;
@@ -21,18 +23,14 @@ static  constexpr u8  SPR_ICE       = 10;
 static  constexpr u8  SPR_PIPE      = 25;
 static  constexpr u8  SPR_PIPELINE  = 81;
 
-static  constexpr b8PpuBgTile BG_TILE_PIPE_L = {
-  .YTILE = 1, .XTILE = 9,
-};
-static  constexpr b8PpuBgTile BG_TILE_PIPE_R = {
-  .YTILE = 1, .XTILE = 10,
-};
-static  constexpr b8PpuBgTile BG_TILE_PIPE_L_VFLIP = {
-  .YTILE = 1, .XTILE = 9,.VFP = 1
-};
-static  constexpr b8PpuBgTile BG_TILE_PIPE_R_VFLIP = {
-  .YTILE = 1, .XTILE = 10,.VFP = 1
-};
+static  constexpr b8PpuBgTile BG_TILE_PIPE_L = {.YTILE=1, .XTILE=9, };
+static  constexpr b8PpuBgTile BG_TILE_PIPE_R = {.YTILE=1, .XTILE=10, };
+static  constexpr b8PpuBgTile BG_TILE_PIPE_L_VFLIP = {.YTILE=1, .XTILE=9, .VFP=1 };
+static  constexpr b8PpuBgTile BG_TILE_PIPE_R_VFLIP = {.YTILE=1, .XTILE=10,.VFP=1 };
+
+static  u8  getv(b8PpuBgTile tile ){
+  return  (tile.YTILE<<4) + tile.XTILE;
+} 
 
 static  constexpr u8  PAL_COIN_BLINK = 3;
 static  constexpr u8  PAL_SHADOW     = 4;
@@ -45,22 +43,20 @@ static  constexpr array<unsigned char, 16> palette_shadow = {0,1,1,1,1,1,1,1,1,1
 
 extern  const uint8_t  b8_image_sprite0[];
 
-// Foo's position
 static  Vec pos_flyer;
+static  Vec v_flyer;
 static  int xgen_map;
 static  int ygen;
-
-// Foo's velocity
-static  Vec v_flyer;
 
 static  void  blinkCoin();
 
 static  constexpr BgTiles XTILES = TILES_32;
+static  constexpr BgTiles YTILES = TILES_32;
 
 // Equivalent to PICO-8's _init()
 static  void  init() {
   lsp(0, b8_image_sprite0);
-  mapsetup(XTILES, TILES_32,std::nullopt,B8_PPU_BG_WRAP_REPEAT,B8_PPU_BG_WRAP_REPEAT);
+  mapsetup(XTILES, YTILES,std::nullopt,B8_PPU_BG_WRAP_REPEAT,B8_PPU_BG_WRAP_REPEAT);
 
   // Set flags for each sprite pattern (BG patterns)
  //fset(SPR_WALL0, FLAG_WALL, 1);
@@ -68,6 +64,15 @@ static  void  init() {
  //fset(SPR_WALL2, FLAG_WALL, 1);
  //fset(SPR_COIN,  FLAG_COIN, 1);
  //for (u8 ii = SPR_FLOWER; ii < 48; ++ii) fset(ii, FLAG_FRUITE, 1);
+
+  fset( getv(BG_TILE_PIPE_L) ,        FLAG_WALL, 1);
+  fset( getv(BG_TILE_PIPE_R) ,        FLAG_WALL, 1);
+  fset( getv(BG_TILE_PIPE_L_VFLIP) ,  FLAG_WALL, 1);
+  fset( getv(BG_TILE_PIPE_R_VFLIP) ,  FLAG_WALL, 1);
+  fset( SPR_GROUND,FLAG_WALL, 1);
+  fset( SPR_GROUND_GREEN ,FLAG_WALL, 1);
+  fset( SPR_PIPELINE  ,FLAG_WALL,1);
+  fset( SPR_PIPELINE+1,FLAG_WALL,1);
 
   reqReset = RESET_GAME;;
 }
@@ -112,6 +117,7 @@ static  void  update() {
       }break;
       case  RESET_GAME:{
         pos_flyer.set(0,64);
+        v_flyer.set( fx8(1,2) , 0 );
         xgen_map = pos_flyer.x - 64;
         ygen = pos_flyer.y;
         b8PpuBgTile tile = {};
@@ -123,7 +129,22 @@ static  void  update() {
   }
 
   if( btnp( BUTTON_ANY ) ){
-    printf( "anybtn\n");
+    v_flyer.y = -fx8(2);
+  }
+
+  pos_flyer += v_flyer;
+  v_flyer.y += fx8(10,100);
+
+  cam.x = pos_flyer.x - 32;
+  cam.y = 0;
+
+  const u32 ux = (static_cast< u32 >( pos_flyer.x ) >> 3) & (XTILES-1);
+  const u32 uy = (static_cast< u32 >( pos_flyer.y ) >> 3) & (YTILES-1);
+  //printf( "ux,uy=%ld,%ld\n",ux,uy);
+
+  const u16 spridx = mget(ux,uy);
+  if( fget(spridx,FLAG_WALL) ){
+    printf( "COLLIDE\n" );
   }
 }
 
@@ -144,10 +165,6 @@ static  void  draw() {
   // Palette animation to make the coin sparkle.
   blinkCoin();
 
-  pos_flyer.x += fx8(1,2);
-
-  cam.x = pos_flyer.x - 32;
-  cam.y = 0;
   camera(cam.x, cam.y);
   genMap();
 
