@@ -42,8 +42,10 @@ static  int ygen;
 static  bool dead;
 static  bool req_red = false;
 static  u8 dcnt_stop_update = 0;
+static  int hi_score;
 static  int score;
 static  int disp_score;
+static  int cnt_title;
 
 static  u8  getv(b8PpuBgTile tile ) {
   return  (tile.YTILE<<4) + tile.XTILE;
@@ -51,8 +53,10 @@ static  u8  getv(b8PpuBgTile tile ) {
 
 static  void  init() {
   extern  const uint8_t  b8_image_sprite0[];
+  hi_score = 50;
   lsp(0, b8_image_sprite0);
   mapsetup(XTILES, YTILES,std::nullopt,B8_PPU_BG_WRAP_REPEAT,B8_PPU_BG_WRAP_REPEAT);
+
 
   fset( getv(BG_TILE_PIPE_L) ,        FLAG_WALL, 1);
   fset( getv(BG_TILE_PIPE_R) ,        FLAG_WALL, 1);
@@ -114,9 +118,12 @@ static  void  update() {
     switch( reqReset ){
       case  RESET_NIL:break;
       case  RESET_TITLE:{
+        cnt_title = 0;
+        print("\e[3;7H    ");
+        print("\e[3q\e[13;4H HI:%d\e[0q" , hi_score );
+        print("\e[15;4H SC:%d", score );
       }break;
       case  RESET_GAME:{
-
         pos_flyer.set(0,64);
         v_flyer.set(fx8(2,2),0);
         xgen_map = pos_flyer.x - 64;
@@ -163,6 +170,7 @@ static  void  update() {
     case RESET_NIL:break;
 
     case RESET_TITLE:{
+      cnt_title+=3;
       if( btnp( BUTTON_ANY ) ) reqReset = RESET_GAME;
     }break;
   }
@@ -171,6 +179,8 @@ static  void  update() {
 static  void  draw() {
   // Enable or disable the debug string output via dprint().
   dprintenable(false);
+
+  pal( WHITE, RED , 3 );
 
   // Initialize the camera state.
   camera();
@@ -198,11 +208,11 @@ static  void  draw() {
   // Draw the yellow round-faced Foo sprite.
   switch( status ){
     case  RESET_NIL:
-    case  RESET_TITLE:
+    case  RESET_TITLE:{
+      camera();
       setz(1);
-      spr(SPR_TITLE,0,48,16,4);
-      print("\e[3;7H    ");
-      break;
+      spr(SPR_TITLE,4, pico8::min(48,cnt_title-32),15,4);
+    }break;
     case  RESET_GAME:{
       const u8 anm = dead ? 0 : ((static_cast< u32 >( pos_flyer.y ) >> 3) & 1)<<1;
       spr(SPR_FLYER + anm, pos_flyer.x-8, pos_flyer.y-8, 2, 2, false, dead );
