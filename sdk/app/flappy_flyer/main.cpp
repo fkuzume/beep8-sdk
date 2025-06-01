@@ -230,7 +230,7 @@ static  void  update() {
     case RESET_NIL:break;
 
     case RESET_TITLE:{
-      cnt_title+=3;
+      cnt_title++;
       if( btnp( BUTTON_ANY ) ) reqReset = RESET_GAME;
     }break;
   }
@@ -270,7 +270,9 @@ static  void  draw() {
     case  RESET_TITLE:{
       camera();
       setz(1);
-      spr(SPR_TITLE,4, pico8::min(48,cnt_title-32),15,4);
+      spr(SPR_TITLE,4, pico8::min(48,(cnt_title*3)-32),15,4);
+      const u8 anm = ((cnt_title>>3)&1)<<1;
+      spr(SPR_FLYER + anm, (cnt_title-8)&127, 140, 2, 2);
     }break;
     case  RESET_GAME:{
       const u8 anm = dead ? 0 : ((static_cast< u32 >( pos_flyer.y ) >> 3) & 1)<<1;
