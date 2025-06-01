@@ -10,6 +10,7 @@ static  constexpr u8  SPR_FLYER         = 4;
 static  constexpr u8  SPR_GROUND_GREEN  = 9;
 static  constexpr u8  SPR_GROUND        = 8;
 static  constexpr u8  SPR_PIPELINE      = 16;
+static  constexpr u8  SPR_TITLE         = 80;
 
 static  constexpr fx8 VJUMP(-3);
 static  constexpr fx8 GRAVITY(17,100);
@@ -198,6 +199,8 @@ static  void  draw() {
   switch( status ){
     case  RESET_NIL:
     case  RESET_TITLE:
+      setz(1);
+      spr(SPR_TITLE,0,48,16,4);
       print("\e[3;7H    ");
       break;
     case  RESET_GAME:{
