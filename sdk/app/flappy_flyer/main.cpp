@@ -47,6 +47,7 @@ static  u8 dcnt_stop_update = 0;
 static  int hi_score;
 static  int score;
 static  int disp_score;
+static  int xlast_got_score;
 static  int cnt_title;
 
 static  u8  getv(b8PpuBgTile tile ) {
@@ -135,6 +136,7 @@ static  void  update() {
       }break;
       case  RESET_GAME:{
         print("\e[2J");
+
         pos_flyer.set(0,64);
         v_flyer.set(fx8(2,2),0);
         xgen_map = pos_flyer.x - 64;
@@ -142,6 +144,7 @@ static  void  update() {
         dead = false;
         score  = 0;
         disp_score = -1;
+        xlast_got_score = 0;
         b8PpuBgTile tile = {};
         mcls(tile);
         genMap();
@@ -168,11 +171,18 @@ static  void  update() {
 
       pos_flyer.y = pico8::max( pos_flyer.y , 0 );
 
+      const u8 collide = chkIfCollide();
       if( !dead ){
-        req_red = dead = (chkIfCollide() == FLAG_WALL);
+        req_red = dead = (collide == FLAG_WALL);
         if( dead ){
           dcnt_stop_update = 7;
         }
+      }
+
+      if( (!dead) && pos_flyer.x > xlast_got_score + 9 ){
+        if( collide == FLAG_SENSOR )  ++score;
+        hi_score = pico8::max( score , hi_score);
+        xlast_got_score = pos_flyer.x;
       }
 
       if( dead && pos_flyer.y > 240 ) reqReset = RESET_TITLE;
