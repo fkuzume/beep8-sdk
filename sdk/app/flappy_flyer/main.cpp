@@ -57,7 +57,6 @@ static  void  init() {
   lsp(0, b8_image_sprite0);
   mapsetup(XTILES, YTILES,std::nullopt,B8_PPU_BG_WRAP_REPEAT,B8_PPU_BG_WRAP_REPEAT);
 
-
   fset( getv(BG_TILE_PIPE_L) ,        FLAG_WALL, 1);
   fset( getv(BG_TILE_PIPE_R) ,        FLAG_WALL, 1);
   fset( getv(BG_TILE_PIPE_L_VFLIP) ,  FLAG_WALL, 1);
@@ -124,6 +123,7 @@ static  void  update() {
         print("\e[15;4H SC:%d", score );
       }break;
       case  RESET_GAME:{
+        print("\e[2J");
         pos_flyer.set(0,64);
         v_flyer.set(fx8(2,2),0);
         xgen_map = pos_flyer.x - 64;
@@ -179,7 +179,6 @@ static  void  update() {
 static  void  draw() {
   // Enable or disable the debug string output via dprint().
   dprintenable(false);
-
   pal( WHITE, RED , 3 );
 
   // Initialize the camera state.
