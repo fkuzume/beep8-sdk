@@ -11,9 +11,6 @@ enum ReqReset {
   RESET_TITLE,
   RESET_GAME,
 };
-static  ReqReset  reqReset = RESET_NIL;
-
-static  Vec cam;
 
 static  constexpr u8  FLAG_WALL = 1;
 static  constexpr u8  SPR_FLYER         = 4;
@@ -37,18 +34,23 @@ static  constexpr BgTiles XTILES = TILES_32;
 static  constexpr BgTiles YTILES = TILES_32;
 static  constexpr array<unsigned char, 16> palette_shadow = {0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
 
+// work memory
 static  int frame = 0;
+static  ReqReset  reqReset = RESET_NIL;
 
 // game work
+static  Vec cam;
 static  Vec pos_flyer;
 static  Vec v_flyer;
 static  int xgen_map;
 static  int ygen;
 static  bool dead;
+static  bool req_red = false;
+static  u8 dcnt_stop_update = 0;
 
 static  void  blinkCoin();
 
-static  u8  getv(b8PpuBgTile tile ){
+static  u8  getv(b8PpuBgTile tile ) const {
   return  (tile.YTILE<<4) + tile.XTILE;
 } 
 
@@ -130,6 +132,11 @@ static  void  update() {
     reqReset = RESET_NIL;
   }
 
+  if( dcnt_stop_update > 0 ){
+    --dcnt_stop_update;
+    return;
+  }
+
   if( (!dead) && btnp( BUTTON_ANY ) ) v_flyer.y = VJUMP;
 
   pos_flyer += v_flyer;
@@ -138,7 +145,12 @@ static  void  update() {
   cam.x = pos_flyer.x - 32;
   cam.y = 0;
 
-  if( !dead ) dead = chkIfCollide();
+  if( !dead ){
+    req_red = dead = chkIfCollide();
+    if( dead ){
+      dcnt_stop_update = 7;
+    }
+  }
 }
 
 static  void  draw() {
@@ -149,7 +161,8 @@ static  void  draw() {
   camera();
 
   // Clear the entire screen with GREEN.
-  cls(BLUE);
+  cls(req_red ? RED : BLUE);
+  req_red = false;
 
   // Applies depth setting to all subsequent draw calls:
   // 0 is frontmost, maxz() is backmost.
