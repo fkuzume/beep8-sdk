@@ -115,8 +115,6 @@ static  void  update() {
         xgen_map = pos_flyer.x - 64;
         ygen = pos_flyer.y;
         b8PpuBgTile tile = {};
-        tile.XTILE = 0;
-        tile.YTILE = 2;
         mcls(tile);
         genMap();
       }break;
