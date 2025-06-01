@@ -37,6 +37,7 @@ static  constexpr array<unsigned char, 16> palette_shadow = {0,1,1,1,1,1,1,1,1,1
 // work memory
 static  int frame = 0;
 static  ReqReset  reqReset = RESET_NIL;
+static  ReqReset  status = RESET_NIL;
 
 // game work
 static  Vec cam;
@@ -50,7 +51,7 @@ static  u8 dcnt_stop_update = 0;
 
 static  void  blinkCoin();
 
-static  u8  getv(b8PpuBgTile tile ) const {
+static  u8  getv(b8PpuBgTile tile ) {
   return  (tile.YTILE<<4) + tile.XTILE;
 } 
 
@@ -68,6 +69,7 @@ static  void  init() {
   fset( SPR_PIPELINE+1,FLAG_WALL,1);
 
   reqReset = RESET_GAME;;
+  reqReset = RESET_TITLE;;
 }
 
 static  void  genMap(){
@@ -129,6 +131,7 @@ static  void  update() {
         genMap();
       }break;
     }
+    status = reqReset; 
     reqReset = RESET_NIL;
   }
 
@@ -137,19 +140,33 @@ static  void  update() {
     return;
   }
 
-  if( (!dead) && btnp( BUTTON_ANY ) ) v_flyer.y = VJUMP;
+  switch( status ){
+    case RESET_GAME:{
+      if( (!dead) && btnp( BUTTON_ANY ) ) v_flyer.y = VJUMP;
 
-  pos_flyer += v_flyer;
-  v_flyer.y += GRAVITY;
+      pos_flyer += v_flyer;
+      v_flyer.y = v_flyer.y + GRAVITY;
 
-  cam.x = pos_flyer.x - 32;
-  cam.y = 0;
+      cam.x = pos_flyer.x - 32;
+      cam.y = 0;
 
-  if( !dead ){
-    req_red = dead = chkIfCollide();
-    if( dead ){
-      dcnt_stop_update = 7;
-    }
+      pos_flyer.y = pico8::max( pos_flyer.y , 0 );
+
+
+      if( !dead ){
+        req_red = dead = chkIfCollide();
+        if( dead ){
+          dcnt_stop_update = 7;
+        }
+      }
+
+      if( dead && pos_flyer.y > 240 ) reqReset = RESET_TITLE;
+    }break;
+    case RESET_NIL:break;
+
+    case RESET_TITLE:{
+      if( btnp( BUTTON_ANY ) ) reqReset = RESET_GAME;
+    }break;
   }
 }
 
@@ -184,7 +201,14 @@ static  void  draw() {
   pal(WHITE, BLACK, palsel);
 
   // Draw the yellow round-faced Foo sprite.
-  spr(SPR_FLYER, pos_flyer.x-8, pos_flyer.y-8, 2, 2, false, dead );
+  switch( status ){
+    case  RESET_NIL:
+    case  RESET_TITLE:
+      break;
+    case  RESET_GAME:
+      spr(SPR_FLYER, pos_flyer.x-8, pos_flyer.y-8, 2, 2, false, dead );
+      break;
+  }
 }
 
 // Palette animation data for coin blinking
