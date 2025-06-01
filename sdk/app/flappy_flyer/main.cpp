@@ -9,7 +9,7 @@ static  constexpr u8  FLAG_WALL = 1;
 static  constexpr u8  SPR_FLYER         = 4;
 static  constexpr u8  SPR_GROUND_GREEN  = 9;
 static  constexpr u8  SPR_GROUND        = 8;
-static  constexpr u8  SPR_PIPELINE      = 81;
+static  constexpr u8  SPR_PIPELINE      = 16;
 
 static  constexpr fx8 VJUMP(-3);
 static  constexpr fx8 GRAVITY(17,100);
@@ -193,7 +193,6 @@ static  void  draw() {
   // Set the palette.
   const u8 palsel = 1;
   pal(WHITE, BLACK, palsel);
-
 
   // Draw the yellow round-faced Foo sprite.
   switch( status ){
