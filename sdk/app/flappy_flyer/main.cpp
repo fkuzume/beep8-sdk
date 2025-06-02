@@ -225,10 +225,13 @@ static  void  update() {
       }
 
       if( dead && pos_flyer.y > 240 ) reqReset = RESET_TITLE;
+
+      genMap();
     }break;
     case RESET_NIL:break;
 
     case RESET_TITLE:{
+      genMap();
       cnt_title++;
       if( btnp( BUTTON_ANY ) ) reqReset = RESET_GAME;
     }break;
@@ -252,7 +255,6 @@ static  void  draw() {
   setz(maxz()-1);
 
   camera(cam.x, cam.y);
-  genMap();
 
   map(cam.x, cam.y, BG_0);
 
