@@ -30,7 +30,6 @@ static  constexpr u8  PAL_SHADOW     = 4;
 static  constexpr u8  YT_GROUND = 23;
 static  constexpr BgTiles XTILES = TILES_32;
 static  constexpr BgTiles YTILES = TILES_32;
-static  constexpr array<unsigned char, 16> palette_shadow = {0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
 
 // work ram
 static  int frame = 0;
@@ -72,8 +71,7 @@ static  void  init() {
   fset( SPR_PIPELINE+1,               0xff, FLAG_WALL);
   fset( SPR_SENSOR,0xff,FLAG_SENSOR);
 
-  reqReset = RESET_GAME;;
-  reqReset = RESET_TITLE;;
+  reqReset = RESET_TITLE;
 }
 
 static  void  genMap(){
