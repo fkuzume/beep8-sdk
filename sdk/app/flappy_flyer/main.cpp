@@ -48,8 +48,8 @@ static  int disp_score;
 static  int xlast_got_score;
 static  int cnt_title;
 
-static  u8  getv(b8PpuBgTile tile ) {
-  return  (tile.YTILE<<4) + tile.XTILE;
+static  u8  tileId(b8PpuBgTile tile ) {
+  return static_cast<u8>((tile.YTILE << 4) | (tile.XTILE & 0x0F));
 } 
 
 static  void  genMap(){
@@ -146,10 +146,10 @@ class Pico8App : public Pico8 {
     lsp(0, b8_image_sprite0);
     mapsetup(XTILES, YTILES,std::nullopt,B8_PPU_BG_WRAP_REPEAT,B8_PPU_BG_WRAP_REPEAT);
 
-    fset( getv(BG_TILE_PIPE_L) ,        0xff, FLAG_WALL);
-    fset( getv(BG_TILE_PIPE_R) ,        0xff, FLAG_WALL);
-    fset( getv(BG_TILE_PIPE_L_VFLIP) ,  0xff, FLAG_WALL);
-    fset( getv(BG_TILE_PIPE_R_VFLIP) ,  0xff, FLAG_WALL);
+    fset( tileId(BG_TILE_PIPE_L) ,        0xff, FLAG_WALL);
+    fset( tileId(BG_TILE_PIPE_R) ,        0xff, FLAG_WALL);
+    fset( tileId(BG_TILE_PIPE_L_VFLIP) ,  0xff, FLAG_WALL);
+    fset( tileId(BG_TILE_PIPE_R_VFLIP) ,  0xff, FLAG_WALL);
     fset( SPR_GROUND,                   0xff, FLAG_WALL);
     fset( SPR_GROUND_GREEN,             0xff, FLAG_WALL);
     fset( SPR_PIPELINE  ,               0xff, FLAG_WALL);
