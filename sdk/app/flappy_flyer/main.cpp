@@ -55,24 +55,6 @@ static  u8  getv(b8PpuBgTile tile ) {
   return  (tile.YTILE<<4) + tile.XTILE;
 } 
 
-static  void  init() {
-  extern  const uint8_t  b8_image_sprite0[];
-  hi_score = 53;
-  lsp(0, b8_image_sprite0);
-  mapsetup(XTILES, YTILES,std::nullopt,B8_PPU_BG_WRAP_REPEAT,B8_PPU_BG_WRAP_REPEAT);
-
-  fset( getv(BG_TILE_PIPE_L) ,        0xff, FLAG_WALL);
-  fset( getv(BG_TILE_PIPE_R) ,        0xff, FLAG_WALL);
-  fset( getv(BG_TILE_PIPE_L_VFLIP) ,  0xff, FLAG_WALL);
-  fset( getv(BG_TILE_PIPE_R_VFLIP) ,  0xff, FLAG_WALL);
-  fset( SPR_GROUND,                   0xff, FLAG_WALL);
-  fset( SPR_GROUND_GREEN,             0xff, FLAG_WALL);
-  fset( SPR_PIPELINE  ,               0xff, FLAG_WALL);
-  fset( SPR_PIPELINE+1,               0xff, FLAG_WALL);
-  fset( SPR_SENSOR,0xff,FLAG_SENSOR);
-
-  reqReset = RESET_TITLE;
-}
 
 static  void  genMap(){
   int xdst = pos_flyer.x + 192;
@@ -161,139 +143,156 @@ static  u8  chkIfCollide() {
   );
 }
 
-static  void  update() {
-  ++frame;
+class Pico8App : public Pico8 {
+  void _init() override {
+    extern  const uint8_t  b8_image_sprite0[];
+    hi_score = 53;
+    lsp(0, b8_image_sprite0);
+    mapsetup(XTILES, YTILES,std::nullopt,B8_PPU_BG_WRAP_REPEAT,B8_PPU_BG_WRAP_REPEAT);
 
-  if( reqReset != RESET_NIL ){
-    switch( reqReset ){
-      case  RESET_NIL:break;
-      case  RESET_TITLE:{
-        cnt_title = 0;
-        print("\e[3;7H    ");
-        print("\e[3q\e[13;4H HI:%d\e[0q" , hi_score );
-        print("\e[15;4H SC:%d", score );
-      }break;
-      case  RESET_GAME:{
-        print("\e[2J");
+    fset( getv(BG_TILE_PIPE_L) ,        0xff, FLAG_WALL);
+    fset( getv(BG_TILE_PIPE_R) ,        0xff, FLAG_WALL);
+    fset( getv(BG_TILE_PIPE_L_VFLIP) ,  0xff, FLAG_WALL);
+    fset( getv(BG_TILE_PIPE_R_VFLIP) ,  0xff, FLAG_WALL);
+    fset( SPR_GROUND,                   0xff, FLAG_WALL);
+    fset( SPR_GROUND_GREEN,             0xff, FLAG_WALL);
+    fset( SPR_PIPELINE  ,               0xff, FLAG_WALL);
+    fset( SPR_PIPELINE+1,               0xff, FLAG_WALL);
+    fset( SPR_SENSOR,0xff,FLAG_SENSOR);
 
-        pos_flyer.set(0,64);
-        v_flyer.set(fx8(2,2),0);
-        xgen_map = pos_flyer.x - 64;
-        ygen = pos_flyer.y;
-        dead = false;
-        score  = 0;
-        disp_score = -1;
-        xlast_got_score = 0;
-        b8PpuBgTile tile = {};
-        mcls(tile);
+    reqReset = RESET_TITLE;
+  }
+
+  void _update() override {
+
+    ++frame;
+
+    if( reqReset != RESET_NIL ){
+      switch( reqReset ){
+        case  RESET_NIL:break;
+        case  RESET_TITLE:{
+          cnt_title = 0;
+          print("\e[3;7H    ");
+          print("\e[3q\e[13;4H HI:%d\e[0q" , hi_score );
+          print("\e[15;4H SC:%d", score );
+        }break;
+        case  RESET_GAME:{
+          print("\e[2J");
+
+          pos_flyer.set(0,64);
+          v_flyer.set(fx8(2,2),0);
+          xgen_map = pos_flyer.x - 64;
+          ygen = pos_flyer.y;
+          dead = false;
+          score  = 0;
+          disp_score = -1;
+          xlast_got_score = 0;
+          b8PpuBgTile tile = {};
+          mcls(tile);
+          genMap();
+        }break;
+      }
+      status = reqReset; 
+      reqReset = RESET_NIL;
+    }
+
+    if( dcnt_stop_update > 0 ){
+      --dcnt_stop_update;
+      return;
+    }
+
+    switch( status ){
+      case RESET_GAME:{
+        if( (!dead) && btnp( BUTTON_ANY ) ) v_flyer.y = VJUMP;
+
+        pos_flyer += v_flyer;
+        v_flyer.y = v_flyer.y + GRAVITY;
+
+        cam.x = pos_flyer.x - 32;
+        cam.y = 0;
+
+        pos_flyer.y = pico8::max( pos_flyer.y , 0 );
+
+        const u8 collide = chkIfCollide();
+        if( !dead ){
+          req_red = dead = (collide == FLAG_WALL);
+          if( dead ){
+            dcnt_stop_update = 7;
+          }
+        }
+
+        if( (!dead) && pos_flyer.x > xlast_got_score + 9 ){
+          if( collide == FLAG_SENSOR )  ++score;
+          hi_score = pico8::max( score , hi_score);
+          xlast_got_score = pos_flyer.x;
+        }
+
+        if( dead && pos_flyer.y > 240 ) reqReset = RESET_TITLE;
+
         genMap();
       }break;
+      case RESET_NIL:break;
+
+      case RESET_TITLE:{
+        genMap();
+        cnt_title++;
+        if( btnp( BUTTON_ANY ) ) reqReset = RESET_GAME;
+      }break;
     }
-    status = reqReset; 
-    reqReset = RESET_NIL;
   }
 
-  if( dcnt_stop_update > 0 ){
-    --dcnt_stop_update;
-    return;
-  }
+  void _draw() override {
+    // Enable or disable the debug string output via dprint().
+    dprintenable(false);
+    pal( WHITE, RED , 3 );
 
-  switch( status ){
-    case RESET_GAME:{
-      if( (!dead) && btnp( BUTTON_ANY ) ) v_flyer.y = VJUMP;
+    // Initialize the camera state.
+    camera();
 
-      pos_flyer += v_flyer;
-      v_flyer.y = v_flyer.y + GRAVITY;
+    // Clear the entire screen with GREEN.
+    cls(req_red ? RED : BLUE);
+    req_red = false;
 
-      cam.x = pos_flyer.x - 32;
-      cam.y = 0;
+    // Applies depth setting to all subsequent draw calls:
+    // 0 is frontmost, maxz() is backmost.
+    setz(maxz()-1);
 
-      pos_flyer.y = pico8::max( pos_flyer.y , 0 );
+    camera(cam.x, cam.y);
 
-      const u8 collide = chkIfCollide();
-      if( !dead ){
-        req_red = dead = (collide == FLAG_WALL);
-        if( dead ){
-          dcnt_stop_update = 7;
+    map(cam.x, cam.y, BG_0);
+
+    // Set depth to the foreground.
+    setz(maxz()/2);
+
+    // Set the palette.
+    const u8 palsel = 1;
+    pal(WHITE, BLACK, palsel);
+
+    // Draw the yellow round-faced Foo sprite.
+    switch( status ){
+      case  RESET_NIL:
+      case  RESET_TITLE:{
+        camera();
+        setz(1);
+        spr(SPR_TITLE,4, pico8::min(48,(cnt_title*3)-32),15,4);
+        const u8 anm = ((cnt_title>>3)&1)<<1;
+        spr(SPR_FLYER + anm, (cnt_title+44)&255, 140, 2, 2);
+      }break;
+      case  RESET_GAME:{
+        const u8 anm = dead ? 0 : ((static_cast< u32 >( pos_flyer.y ) >> 3) & 1)<<1;
+        spr(SPR_FLYER + anm, pos_flyer.x-8, pos_flyer.y-8, 2, 2, false, dead );
+
+        if( score != disp_score ){
+          disp_score = score; 
+          print("\e[21;1H%d",disp_score);
         }
-      }
+      }break;
+    }
 
-      if( (!dead) && pos_flyer.x > xlast_got_score + 9 ){
-        if( collide == FLAG_SENSOR )  ++score;
-        hi_score = pico8::max( score , hi_score);
-        xlast_got_score = pos_flyer.x;
-      }
-
-      if( dead && pos_flyer.y > 240 ) reqReset = RESET_TITLE;
-
-      genMap();
-    }break;
-    case RESET_NIL:break;
-
-    case RESET_TITLE:{
-      genMap();
-      cnt_title++;
-      if( btnp( BUTTON_ANY ) ) reqReset = RESET_GAME;
-    }break;
+    camera();
+    setz(maxz());
+    spr(SPR_CLOUD, (((255-(frame>>2)))&255)-64,7,4,4);
   }
-}
-
-static  void  draw() {
-  // Enable or disable the debug string output via dprint().
-  dprintenable(false);
-  pal( WHITE, RED , 3 );
-
-  // Initialize the camera state.
-  camera();
-
-  // Clear the entire screen with GREEN.
-  cls(req_red ? RED : BLUE);
-  req_red = false;
-
-  // Applies depth setting to all subsequent draw calls:
-  // 0 is frontmost, maxz() is backmost.
-  setz(maxz()-1);
-
-  camera(cam.x, cam.y);
-
-  map(cam.x, cam.y, BG_0);
-
-  // Set depth to the foreground.
-  setz(maxz()/2);
-
-  // Set the palette.
-  const u8 palsel = 1;
-  pal(WHITE, BLACK, palsel);
-
-  // Draw the yellow round-faced Foo sprite.
-  switch( status ){
-    case  RESET_NIL:
-    case  RESET_TITLE:{
-      camera();
-      setz(1);
-      spr(SPR_TITLE,4, pico8::min(48,(cnt_title*3)-32),15,4);
-      const u8 anm = ((cnt_title>>3)&1)<<1;
-      spr(SPR_FLYER + anm, (cnt_title+44)&255, 140, 2, 2);
-    }break;
-    case  RESET_GAME:{
-      const u8 anm = dead ? 0 : ((static_cast< u32 >( pos_flyer.y ) >> 3) & 1)<<1;
-      spr(SPR_FLYER + anm, pos_flyer.x-8, pos_flyer.y-8, 2, 2, false, dead );
-
-      if( score != disp_score ){
-        disp_score = score; 
-        print("\e[21;1H%d",disp_score);
-      }
-    }break;
-  }
-
-  camera();
-  setz(maxz());
-  spr(SPR_CLOUD, (((255-(frame>>2)))&255)-64,7,4,4);
-}
-class Pico8App : public Pico8 {
-  void _init() override { init(); }
-  void _update() override { update(); }
-  void _draw() override { draw(); }
 public: virtual ~Pico8App(){}
 };
 int main() {
