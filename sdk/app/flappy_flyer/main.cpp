@@ -27,12 +27,12 @@ namespace {
   constexpr BgTiles YTILES = TILES_32;
 }
 
-enum GameState { RESET_NIL, RESET_TITLE, RESET_GAME };
+enum GameState { Nil, Title, Playing };
 
 // work ram
 static  int frame = 0;
-static  GameState  reqReset = RESET_NIL;
-static  GameState  status = RESET_NIL;
+static  GameState  reqReset = Nil;
+static  GameState  status = Nil;
 
 // game work ram
 static  Vec cam;
@@ -157,23 +157,23 @@ class FlappyFlyerApp : public Pico8 {
     fset( SPR_PIPELINE+1,               0xff, FLAG_WALL);
     fset( SPR_SENSOR,0xff,FLAG_SENSOR);
 
-    reqReset = RESET_TITLE;
+    reqReset = Title;
   }
 
   void _update() override {
 
     ++frame;
 
-    if( reqReset != RESET_NIL ){
+    if( reqReset != Nil ){
       switch( reqReset ){
-        case  RESET_NIL:break;
-        case  RESET_TITLE:{
+        case  Nil:break;
+        case  Title:{
           cnt_title = 0;
           print("\e[3;7H    ");
           print("\e[3q\e[13;4H HI:%d\e[0q" , hi_score );
           print("\e[15;4H SC:%d", score );
         }break;
-        case  RESET_GAME:{
+        case  Playing:{
           print("\e[2J");
 
           pos_flyer.set(0,64);
@@ -190,7 +190,7 @@ class FlappyFlyerApp : public Pico8 {
         }break;
       }
       status = reqReset; 
-      reqReset = RESET_NIL;
+      reqReset = Nil;
     }
 
     if( dcnt_stop_update > 0 ){
@@ -199,7 +199,7 @@ class FlappyFlyerApp : public Pico8 {
     }
 
     switch( status ){
-      case RESET_GAME:{
+      case Playing:{
         if( (!dead) && btnp( BUTTON_ANY ) ) v_flyer.y = VJUMP;
 
         pos_flyer += v_flyer;
@@ -224,16 +224,16 @@ class FlappyFlyerApp : public Pico8 {
           xlast_got_score = pos_flyer.x;
         }
 
-        if( dead && pos_flyer.y > 240 ) reqReset = RESET_TITLE;
+        if( dead && pos_flyer.y > 240 ) reqReset = Title;
 
         genMap();
       }break;
-      case RESET_NIL:break;
+      case Nil:break;
 
-      case RESET_TITLE:{
+      case Title:{
         genMap();
         cnt_title++;
-        if( btnp( BUTTON_ANY ) ) reqReset = RESET_GAME;
+        if( btnp( BUTTON_ANY ) ) reqReset = Playing;
       }break;
     }
   }
@@ -265,15 +265,15 @@ class FlappyFlyerApp : public Pico8 {
 
     // Draw the yellow round-faced Foo sprite.
     switch( status ){
-      case  RESET_NIL:
-      case  RESET_TITLE:{
+      case  Nil:
+      case  Title:{
         camera();
         setz(1);
         spr(SPR_TITLE,4, pico8::min(48,(cnt_title*3)-32),15,4);
         const u8 anm = ((cnt_title>>3)&1)<<1;
         spr(SPR_FLYER + anm, (cnt_title+44)&255, 140, 2, 2);
       }break;
-      case  RESET_GAME:{
+      case  Playing:{
         const u8 anm = dead ? 0 : ((static_cast< u32 >( pos_flyer.y ) >> 3) & 1)<<1;
         spr(SPR_FLYER + anm, pos_flyer.x-8, pos_flyer.y-8, 2, 2, false, dead );
 
