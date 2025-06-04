@@ -29,25 +29,20 @@ namespace {
 
 enum class  GameState { Nil, Title, Playing };
 
-// work ram
-static  int frame = 0;
-static  GameState  reqReset = GameState::Nil;
-static  GameState  status   = GameState::Nil;
-
-// game work ram
-
 constexpr  inline u8  tileId(b8PpuBgTile tile ) {
   return static_cast<u8>((tile.YTILE << 4) | (tile.XTILE & 0x0F));
 } 
 
-
 class FlappyFlyerApp : public Pico8 {
+  int frame = 0;
+  GameState  reqReset = GameState::Nil;
+  GameState  status   = GameState::Nil;
   Vec cam;
   Vec pos_flyer;
   Vec v_flyer;
-  int xgen_map;
+  int xgen_map = 0;
   fx8 ygen;
-  bool dead;
+  bool dead = false;
   bool req_red = false;
   u8 dcnt_stop_update = 0;
   int hi_score;
