@@ -48,7 +48,7 @@ static  int disp_score;
 static  int xlast_got_score;
 static  int cnt_title;
 
-static  u8  tileId(b8PpuBgTile tile ) {
+constexpr  inline u8  tileId(b8PpuBgTile tile ) {
   return static_cast<u8>((tile.YTILE << 4) | (tile.XTILE & 0x0F));
 } 
 
@@ -139,7 +139,7 @@ static  u8  chkIfCollide() {
   );
 }
 
-class Pico8App : public Pico8 {
+class FlappyFlyerApp : public Pico8 {
   void _init() override {
     extern  const uint8_t  b8_image_sprite0[];
     hi_score = 53;
@@ -289,10 +289,10 @@ class Pico8App : public Pico8 {
     setz(maxz());
     spr(SPR_CLOUD, (((255-(frame>>2)))&255)-64,7,4,4);
   }
-public: virtual ~Pico8App(){}
+public: virtual ~FlappyFlyerApp(){}
 };
 int main() {
-  Pico8App app;
+  FlappyFlyerApp  app;
   app.run();
   return 0;
 }
