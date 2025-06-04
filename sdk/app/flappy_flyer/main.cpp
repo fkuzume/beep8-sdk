@@ -3,7 +3,6 @@
 using namespace std;  
 using namespace pico8;  
 
-enum ReqReset { RESET_NIL, RESET_TITLE, RESET_GAME };
 namespace {
   constexpr u8  FLAG_WALL = 1;
   constexpr u8  FLAG_SENSOR = 2;
@@ -28,10 +27,12 @@ namespace {
   constexpr BgTiles YTILES = TILES_32;
 }
 
+enum GameState { RESET_NIL, RESET_TITLE, RESET_GAME };
+
 // work ram
 static  int frame = 0;
-static  ReqReset  reqReset = RESET_NIL;
-static  ReqReset  status = RESET_NIL;
+static  GameState  reqReset = RESET_NIL;
+static  GameState  status = RESET_NIL;
 
 // game work ram
 static  Vec cam;
@@ -252,9 +253,7 @@ class FlappyFlyerApp : public Pico8 {
     // Applies depth setting to all subsequent draw calls:
     // 0 is frontmost, maxz() is backmost.
     setz(maxz()-1);
-
     camera(cam.x, cam.y);
-
     map(cam.x, cam.y, BG_0);
 
     // Set depth to the foreground.
@@ -291,6 +290,7 @@ class FlappyFlyerApp : public Pico8 {
   }
 public: virtual ~FlappyFlyerApp(){}
 };
+
 int main() {
   FlappyFlyerApp  app;
   app.run();
