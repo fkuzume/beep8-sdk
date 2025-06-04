@@ -4,32 +4,29 @@ using namespace std;
 using namespace pico8;  
 
 enum ReqReset { RESET_NIL, RESET_TITLE, RESET_GAME };
-
-static  constexpr u8  FLAG_WALL = 1;
-static  constexpr u8  FLAG_SENSOR = 2;
-static  constexpr u8  SPR_EMPTY         = 0;
-static  constexpr u8  SPR_FLYER         = 4;
-static  constexpr u8  SPR_GROUND_GREEN  = 9;
-static  constexpr u8  SPR_GROUND        = 8;
-static  constexpr u8  SPR_PIPELINE      = 16;
-static  constexpr u8  SPR_TITLE         = 80;
-static  constexpr u8  SPR_SENSOR        = 10;
-static  constexpr u8  SPR_CLOUD         = 12;
-
-static  constexpr fx8 VJUMP(-29,10);
-static  constexpr fx8 GRAVITY(17,100);
-
-static  constexpr b8PpuBgTile BG_TILE_PIPE_L = {.YTILE=1, .XTILE=9, };
-static  constexpr b8PpuBgTile BG_TILE_PIPE_R = {.YTILE=1, .XTILE=10, };
-static  constexpr b8PpuBgTile BG_TILE_PIPE_L_VFLIP = {.YTILE=1, .XTILE=9, .VFP=1 };
-static  constexpr b8PpuBgTile BG_TILE_PIPE_R_VFLIP = {.YTILE=1, .XTILE=10,.VFP=1 };
-
-
-static  constexpr u8  PAL_COIN_BLINK = 3;
-static  constexpr u8  PAL_SHADOW     = 4;
-static  constexpr u8  YT_GROUND = 23;
-static  constexpr BgTiles XTILES = TILES_32;
-static  constexpr BgTiles YTILES = TILES_32;
+namespace {
+  constexpr u8  FLAG_WALL = 1;
+  constexpr u8  FLAG_SENSOR = 2;
+  constexpr u8  SPR_EMPTY         = 0;
+  constexpr u8  SPR_FLYER         = 4;
+  constexpr u8  SPR_GROUND_GREEN  = 9;
+  constexpr u8  SPR_GROUND        = 8;
+  constexpr u8  SPR_PIPELINE      = 16;
+  constexpr u8  SPR_TITLE         = 80;
+  constexpr u8  SPR_SENSOR        = 10;
+  constexpr u8  SPR_CLOUD         = 12;
+  constexpr fx8 VJUMP(-29,10);
+  constexpr fx8 GRAVITY(17,100);
+  constexpr b8PpuBgTile BG_TILE_PIPE_L = {.YTILE=1, .XTILE=9, };
+  constexpr b8PpuBgTile BG_TILE_PIPE_R = {.YTILE=1, .XTILE=10, };
+  constexpr b8PpuBgTile BG_TILE_PIPE_L_VFLIP = {.YTILE=1, .XTILE=9, .VFP=1 };
+  constexpr b8PpuBgTile BG_TILE_PIPE_R_VFLIP = {.YTILE=1, .XTILE=10,.VFP=1 };
+  constexpr u8  PAL_COIN_BLINK = 3;
+  constexpr u8  PAL_SHADOW     = 4;
+  constexpr u8  YT_GROUND = 23;
+  constexpr BgTiles XTILES = TILES_32;
+  constexpr BgTiles YTILES = TILES_32;
+}
 
 // work ram
 static  int frame = 0;
@@ -54,7 +51,6 @@ static  int cnt_title;
 static  u8  getv(b8PpuBgTile tile ) {
   return  (tile.YTILE<<4) + tile.XTILE;
 } 
-
 
 static  void  genMap(){
   int xdst = pos_flyer.x + 192;
