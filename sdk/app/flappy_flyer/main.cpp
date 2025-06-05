@@ -51,6 +51,36 @@ class FlappyFlyerApp : public Pico8 {
   int xlast_got_score;
   int cnt_title;
 
+  int calculatePipeSpan() {
+    if (score <= 10) {
+      return 8;
+    } else if (score <= 20) {
+      static constexpr int values[] = {8, 7, 7, 7, 6};
+      return rndt(values);
+    } else if (score <= 50) {
+      static constexpr int values[] = {7, 6, 7, 7, 7};
+      return rndt(values);
+    } else if (score <= 75) {
+      static constexpr int values[] = {8, 7, 6, 6, 7, 6, 6};
+      return rndt(values);
+    } else if (score <= 100) {
+      static constexpr int values[] = {7, 7, 6, 6, 6, 6, 6};
+      return rndt(values);
+    } else if (score <= 110) {
+      static constexpr int values[] = {9, 8, 8, 7};
+      return rndt(values);
+    } else if (score <= 140) {
+      static constexpr int values[] = {7, 6, 6, 6, 6};
+      return rndt(values);
+    } else if (score <= 180) {
+      static constexpr int values[] = {6, 6, 6, 6, 5};
+      return rndt(values);
+    } else {
+      static constexpr int values[] = {6, 6, 5, 5, 5};
+      return rndt(values);
+    }
+  }
+
   void  generateMapColumns(){
     int xdst = pos_flyer.x + 192;
     while( xgen_map < xdst ){
@@ -78,36 +108,7 @@ class FlappyFlyerApp : public Pico8 {
         msett(xt,  ytop,BG_TILE_PIPE_L_VFLIP); 
         msett(xt+1,ytop,BG_TILE_PIPE_R_VFLIP);
 
-        int span = 8;
-        if( score <= 10){
-          span = 8;
-        } else if ( score <=20 ){
-          static const int values[] = {8,7,7,7,6};
-          span = rndt(values);
-        } else if ( score <= 50 ){
-          static const int values[] = {7,6,7,7,7};
-          span = rndt(values);
-        } else if ( score <= 75 ){
-          static const int values[] = {8,7,6,6,7,6,6};
-          span = rndt(values);
-        } else if ( score <= 100 ){
-          static const int values[] = {7,7,6,6,6,6,6};
-          span = rndt(values);
-        }  else if ( score <= 110 ){
-          static const int values[] = {9,8,8,7};
-          span = rndt(values);
-        } else if ( score <= 140 ){
-          static const int values[] = {7,6,6,6,6};
-          span = rndt(values);
-        } else if ( score <= 180 ){
-          static const int values[] = {6,6,6,6,5};
-          span = rndt(values);
-        } else {
-          static const int values[] = {6,6,5,5,5};
-          span = rndt(values);
-        }
-
-        const int ybottom = ytop + span;
+        const int ybottom = ytop + calculatePipeSpan();
         if( ybottom < YT_GROUND ){ 
           msett(xt,  ybottom,BG_TILE_PIPE_L); 
           msett(xt+1,ybottom,BG_TILE_PIPE_R);
@@ -157,34 +158,67 @@ class FlappyFlyerApp : public Pico8 {
     reqReset = GameState::Title;
   }
 
-  void _update() override {
+  void updatePlaying(){
+    if( (!dead) && btnp( BUTTON_ANY ) ) v_flyer.y = VJUMP;
 
+    pos_flyer += v_flyer;
+    v_flyer.y = v_flyer.y + GRAVITY;
+
+    cam.x = pos_flyer.x - 32;
+    cam.y = 0;
+
+    pos_flyer.y = pico8::max( pos_flyer.y , 0 );
+
+    const u8 collide = checkCollision();
+    if( !dead ){
+      req_red = dead = (collide == FLAG_WALL);
+      if( dead ){
+        dcnt_stop_update = 7;
+      }
+    }
+
+    if( (!dead) && pos_flyer.x > xlast_got_score + 9 ){
+      if( collide == FLAG_SENSOR )  ++score;
+      hi_score = pico8::max( score , hi_score);
+      xlast_got_score = pos_flyer.x;
+    }
+
+    if( dead && pos_flyer.y > 240 ) reqReset = GameState::Title;
+
+    generateMapColumns();
+  }
+
+  void  enterTitle(){
+    cnt_title = 0;
+    print("\e[3;7H    ");
+    print("\e[3q\e[13;4H HI:%d\e[0q" , hi_score );
+    print("\e[15;4H SC:%d", score );
+  }
+
+  void  enterPlaying(){
+    print("\e[2J");
+
+    pos_flyer.set(0,64);
+    v_flyer.set(fx8(2,2),0);
+    xgen_map = pos_flyer.x - 64;
+    ygen = pos_flyer.y;
+    dead = false;
+    score  = 0;
+    disp_score = -1;
+    xlast_got_score = 0;
+    b8PpuBgTile tile = {};
+    mcls(tile);
+    generateMapColumns();
+  }
+
+  void _update() override {
     ++frame;
 
     if( reqReset != GameState::Nil ){
       switch( reqReset ){
-        case  GameState::Nil:break;
-        case  GameState::Title:{
-          cnt_title = 0;
-          print("\e[3;7H    ");
-          print("\e[3q\e[13;4H HI:%d\e[0q" , hi_score );
-          print("\e[15;4H SC:%d", score );
-        }break;
-        case  GameState::Playing:{
-          print("\e[2J");
-
-          pos_flyer.set(0,64);
-          v_flyer.set(fx8(2,2),0);
-          xgen_map = pos_flyer.x - 64;
-          ygen = pos_flyer.y;
-          dead = false;
-          score  = 0;
-          disp_score = -1;
-          xlast_got_score = 0;
-          b8PpuBgTile tile = {};
-          mcls(tile);
-          generateMapColumns();
-        }break;
+        case  GameState::Nil: break;
+        case  GameState::Title:   enterTitle();   break;
+        case  GameState::Playing: enterPlaying(); break;
       }
       status = reqReset; 
       reqReset = GameState::Nil;
@@ -197,33 +231,7 @@ class FlappyFlyerApp : public Pico8 {
 
     switch( status ){
       case GameState::Playing:{
-        if( (!dead) && btnp( BUTTON_ANY ) ) v_flyer.y = VJUMP;
-
-        pos_flyer += v_flyer;
-        v_flyer.y = v_flyer.y + GRAVITY;
-
-        cam.x = pos_flyer.x - 32;
-        cam.y = 0;
-
-        pos_flyer.y = pico8::max( pos_flyer.y , 0 );
-
-        const u8 collide = checkCollision();
-        if( !dead ){
-          req_red = dead = (collide == FLAG_WALL);
-          if( dead ){
-            dcnt_stop_update = 7;
-          }
-        }
-
-        if( (!dead) && pos_flyer.x > xlast_got_score + 9 ){
-          if( collide == FLAG_SENSOR )  ++score;
-          hi_score = pico8::max( score , hi_score);
-          xlast_got_score = pos_flyer.x;
-        }
-
-        if( dead && pos_flyer.y > 240 ) reqReset = GameState::Title;
-
-        generateMapColumns();
+        updatePlaying();
       }break;
       case GameState::Nil:break;
 
