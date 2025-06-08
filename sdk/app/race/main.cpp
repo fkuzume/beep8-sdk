@@ -4,35 +4,14 @@ using namespace std;
 using namespace pico8;  
 
 namespace {
-  constexpr u8  SPR_EMPTY         = 0;
-  constexpr u8  SPR_FLYER         = 4;
-  constexpr u8  SPR_GROUND_GREEN  = 9;
-  constexpr u8  SPR_GROUND        = 8;
-  constexpr u8  SPR_PIPELINE      = 16;
-  constexpr u8  SPR_TITLE         = 80;
-  constexpr u8  SPR_SENSOR        = 10;
-  constexpr u8  SPR_CLOUD         = 12;
-  constexpr fx8 VJUMP(-29,10);
-  constexpr fx8 GRAVITY(17,100);
-  constexpr b8PpuBgTile BG_TILE_PIPE_L = {.YTILE=1, .XTILE=9, };
-  constexpr b8PpuBgTile BG_TILE_PIPE_R = {.YTILE=1, .XTILE=10, };
-  constexpr b8PpuBgTile BG_TILE_PIPE_L_VFLIP = {.YTILE=1, .XTILE=9, .VFP=1 };
-  constexpr b8PpuBgTile BG_TILE_PIPE_R_VFLIP = {.YTILE=1, .XTILE=10,.VFP=1 };
-  constexpr u8  PAL_COIN_BLINK = 3;
-  constexpr u8  PAL_SHADOW     = 4;
-  constexpr u8  YT_GROUND = 23;
   constexpr BgTiles XTILES = TILES_32;
   constexpr BgTiles YTILES = TILES_32;
   constexpr int DARK_SCORE = 900; 
   constexpr int CLEAR_SCORE = 1000; 
-  constexpr u16 PRIV_KEY = 0xbfae; 
+  constexpr u16 PRIV_KEY = 0x7219; 
 }
 
 enum class  GameState { Nil, Title, Playing, Clear };
-
-constexpr  inline u8  tileId(b8PpuBgTile tile ) {
-  return static_cast<u8>((tile.YTILE << 4) | (tile.XTILE & 0x0F));
-} 
 
 class RaceApp : public Pico8 {
   int frame = 0;
@@ -205,8 +184,7 @@ class RaceApp : public Pico8 {
     camera();
 
     if( status != GameState::Clear ){
-      Color col = score < DARK_SCORE ? BLUE : DARK_BLUE;
-      cls(req_red ? RED : col);
+      cls( DARK_BLUE );
     } else {
       if( cnt_clear < 50 ){ 
         cls( static_cast< Color >( (cnt_clear>>2) & 15 ) );
