@@ -9,8 +9,12 @@ namespace {
   constexpr int DARK_SCORE = 900; 
   constexpr int CLEAR_SCORE = 1000; 
   constexpr u16 PRIV_KEY = 0x7219; 
-
   constexpr u16 ZFIFO = 512;
+
+  constexpr int YPIX_TOP    = 50;
+  constexpr int YPIX_BOTTOM = 150;
+  constexpr int YLEN = YPIX_BOTTOM - YPIX_TOP;
+  constexpr int W_NEAR = 110;
 }
 
 enum class  GameState { Nil, Title, Playing, Clear };
@@ -27,13 +31,20 @@ class RaceApp : public Pico8 {
   int score = 0;
   int disp_score = 0;
   int cnt_title = 0;
+  int cnt_playing = 0;
   int cnt_clear = 0;
 
   // playing 
-  fx8 xCenter[ ZFIFO ];
+  fx8 xCenter[  ZFIFO ];
+  fx8 vxCenter[ ZFIFO ];
 
   void  enterPlaying(){
     print("\e[2J");
+
+    fill(begin(xCenter),  end(xCenter), fx8(0));
+    fill(begin(vxCenter), end(vxCenter),fx8(0));
+
+    cnt_playing = 0;
 
     dead = false;
     score  = 0;
@@ -211,10 +222,32 @@ class RaceApp : public Pico8 {
         setz(1);
       }break;
       case  GameState::Playing:{
+        ++cnt_playing;
+
         if( score != disp_score ){
           disp_score = score; 
           print("\e[21;1H%d",disp_score);
         }
+
+        setz(1);
+        line(0,YPIX_BOTTOM,128,YPIX_BOTTOM,WHITE);
+        fx8 x_center = fx8(64);
+        fx8 vx_center = 0;
+        fx8 ax_center = fx8(21,100) * pico8::sin( fx8(cnt_playing,100) );
+        const int yspan = 2;
+        fx8 width = W_NEAR;
+
+        for( int y=YPIX_BOTTOM ; y>YPIX_TOP ; y -= yspan ){
+          fx8 ox_center = x_center;
+          vx_center += ax_center;
+          x_center  += vx_center;
+          line(ox_center,y,x_center,y - yspan,DARK_GREY);
+
+          line(ox_center-width,y,x_center-width,y - yspan,DARK_GREY);
+          line(ox_center+width,y,x_center+width,y - yspan,DARK_GREY);
+          width -= fx8(213,100);
+        }    
+
       }break;
     }
 
