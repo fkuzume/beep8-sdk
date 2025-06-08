@@ -36,7 +36,7 @@ constexpr  inline u8  tileId(b8PpuBgTile tile ) {
   return static_cast<u8>((tile.YTILE << 4) | (tile.XTILE & 0x0F));
 } 
 
-class FlappyFlyerApp : public Pico8 {
+class RaceApp : public Pico8 {
   int frame = 0;
   GameState  reqReset = GameState::Nil;
   GameState  status   = GameState::Nil;
@@ -357,11 +357,11 @@ class FlappyFlyerApp : public Pico8 {
     setz(maxz());
     spr(SPR_CLOUD, (((255-(frame>>2)))&255)-64,7,4,4);
   }
-public: virtual ~FlappyFlyerApp(){}
+public: virtual ~RaceApp(){}
 };
 
 int main() {
-  FlappyFlyerApp  app;
+  RaceApp  app;
   app.run();
   return 0;
 }
