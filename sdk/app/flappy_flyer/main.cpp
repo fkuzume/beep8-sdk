@@ -25,9 +25,12 @@ namespace {
   constexpr u8  YT_GROUND = 23;
   constexpr BgTiles XTILES = TILES_32;
   constexpr BgTiles YTILES = TILES_32;
+  constexpr int DARK_SCORE = 900; 
+  constexpr int CLEAR_SCORE = 1000; 
+  constexpr u16 PRIV_KEY = 0xbfae; 
 }
 
-enum class  GameState { Nil, Title, Playing };
+enum class  GameState { Nil, Title, Playing, Clear };
 
 constexpr  inline u8  tileId(b8PpuBgTile tile ) {
   return static_cast<u8>((tile.YTILE << 4) | (tile.XTILE & 0x0F));
@@ -50,6 +53,7 @@ class FlappyFlyerApp : public Pico8 {
   int disp_score = 0;
   int xlast_got_score = 0;
   int cnt_title = 0;
+  int cnt_clear = 0;
 
   int calculatePipeSpan() {
     if (score <= 10) {
@@ -183,7 +187,11 @@ class FlappyFlyerApp : public Pico8 {
       xlast_got_score = pos_flyer.x;
     }
 
-    if( dead && pos_flyer.y > 240 ) reqReset = GameState::Title;
+    if( score >= CLEAR_SCORE ){
+      reqReset = GameState::Clear;
+    } else if( dead && pos_flyer.y > 240 ){
+      reqReset = GameState::Title;
+    }
 
     generateMapColumns();
   }
@@ -211,6 +219,51 @@ class FlappyFlyerApp : public Pico8 {
     generateMapColumns();
   }
 
+  void  enterClear(){
+    cnt_clear = 0;
+
+    char pass_str[5];
+    snprintf(pass_str, sizeof(pass_str), "%04X", PRIV_KEY); // 例: "A3F9"
+
+    b8PpuBgTile tile = {};
+    mcls(tile);
+    int y = 5;
+
+    print("\e[%d;0H----------------",y);
+    ++y;
+    print("\e[%d;0HCongratulations!",y);
+    ++y;
+    print("\e[%d;0H----------------",y);
+
+    y+=3;
+    print("\e[%d;0HYou win $100 USD",y);
+    y+=2;
+    print("\e[%d;0HClaim your prize:",y);
+    y+=3;
+
+    char line[32];
+    snprintf(
+      line, sizeof(line),
+      "\e[%d;0HPass:\e[3q  %s\e[0q",y, pass_str
+    );
+    print(line);
+    y+=3;
+
+    print("\e[%d;0HTweet this:",y);
+    ++y;
+
+    print("\e[%d;0H@happy_homhom",y);
+    y+= 2;
+
+    print("\e[%d;0HWe'll contact",y);
+    ++y;
+    print("\e[%d;0Hyou via PayPal",y);
+    ++y;
+
+    print("\e[%d;0Hpayment.",y);
+    ++y;
+  }
+
   void  updateTitle() {
     generateMapColumns();
     cnt_title++;
@@ -225,6 +278,7 @@ class FlappyFlyerApp : public Pico8 {
         case  GameState::Nil: break;
         case  GameState::Title:   enterTitle();   break;
         case  GameState::Playing: enterPlaying(); break;
+        case  GameState::Clear:   enterClear();   break;
       }
       status = reqReset; 
       reqReset = GameState::Nil;
@@ -236,9 +290,10 @@ class FlappyFlyerApp : public Pico8 {
     }
 
     switch( status ){
-      case GameState::Playing: updatePlaying(); break;
-      case GameState::Title: updateTitle();     break;
+      case GameState::Playing:  updatePlaying();break;
+      case GameState::Title:    updateTitle();  break;
       case GameState::Nil:                      break;
+      case GameState::Clear:    ++cnt_clear;    break;
     }
   }
 
@@ -248,7 +303,16 @@ class FlappyFlyerApp : public Pico8 {
     pal( WHITE, RED , 3 );
     camera();
 
-    cls(req_red ? RED : BLUE);
+    if( status != GameState::Clear ){
+      Color col = score < DARK_SCORE ? BLUE : DARK_BLUE;
+      cls(req_red ? RED : col);
+    } else {
+      if( cnt_clear < 50 ){ 
+        cls( static_cast< Color >( (cnt_clear>>2) & 15 ) );
+      } else {
+        cls( PINK );
+      }
+    }
     req_red = false;
 
     setz(maxz()-1);
@@ -262,6 +326,14 @@ class FlappyFlyerApp : public Pico8 {
 
     // Draw the yellow round-faced Foo sprite.
     switch( status ){
+      case  GameState::Clear:{
+        camera();
+        setz(1);
+        spr(SPR_TITLE,4,4,15,4);
+        const u8 anm = ((cnt_clear>>2)&1)<<1;
+        setz(maxz());
+        spr(SPR_FLYER + anm, (cnt_clear<<1)&255, 140-24, 2, 2);
+      }break;
       case  GameState::Nil:
       case  GameState::Title:{
         camera();
