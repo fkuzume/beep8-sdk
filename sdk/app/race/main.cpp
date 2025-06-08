@@ -20,17 +20,12 @@ class RaceApp : public Pico8 {
   GameState  reqReset = GameState::Nil;
   GameState  status   = GameState::Nil;
   Vec cam;
-  Vec pos_flyer;
-  Vec v_flyer;
-  int xgen_map = 0;
-  fx8 ygen;
   bool dead = false;
   bool req_red = false;
   u8 dcnt_stop_update = 0;
   int hi_score = 0;
   int score = 0;
   int disp_score = 0;
-  int xlast_got_score = 0;
   int cnt_title = 0;
   int cnt_clear = 0;
 
@@ -40,14 +35,9 @@ class RaceApp : public Pico8 {
   void  enterPlaying(){
     print("\e[2J");
 
-    pos_flyer.set(0,64);
-    v_flyer.set(fx8(2,2),0);
-    xgen_map = pos_flyer.x - 64;
-    ygen = pos_flyer.y;
     dead = false;
     score  = 0;
     disp_score = -1;
-    xlast_got_score = 0;
     b8PpuBgTile tile = {};
     mcls(tile);
   }
@@ -93,7 +83,7 @@ class RaceApp : public Pico8 {
   void updatePlaying(){
     if( score >= CLEAR_SCORE ){
       reqReset = GameState::Clear;
-    } else if( dead && pos_flyer.y > 240 ){
+    } else if( dead ){
       reqReset = GameState::Title;
     }
   }
