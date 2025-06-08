@@ -45,11 +45,11 @@ class FlappyFlyerApp : public Pico8 {
   bool dead = false;
   bool req_red = false;
   u8 dcnt_stop_update = 0;
-  int hi_score;
-  int score;
-  int disp_score;
-  int xlast_got_score;
-  int cnt_title;
+  int hi_score = 0;
+  int score = 0;
+  int disp_score = 0;
+  int xlast_got_score = 0;
+  int cnt_title = 0;
 
   int calculatePipeSpan() {
     if (score <= 10) {
@@ -211,6 +211,12 @@ class FlappyFlyerApp : public Pico8 {
     generateMapColumns();
   }
 
+  void  updateTitle() {
+    generateMapColumns();
+    cnt_title++;
+    if( btnp( BUTTON_ANY ) ) reqReset = GameState::Playing;
+  }
+
   void _update() override {
     ++frame;
 
@@ -230,16 +236,9 @@ class FlappyFlyerApp : public Pico8 {
     }
 
     switch( status ){
-      case GameState::Playing:{
-        updatePlaying();
-      }break;
-      case GameState::Nil:break;
-
-      case GameState::Title:{
-        generateMapColumns();
-        cnt_title++;
-        if( btnp( BUTTON_ANY ) ) reqReset = GameState::Playing;
-      }break;
+      case GameState::Playing: updatePlaying(); break;
+      case GameState::Title: updateTitle();     break;
+      case GameState::Nil:                      break;
     }
   }
 
@@ -247,24 +246,17 @@ class FlappyFlyerApp : public Pico8 {
     // Enable or disable the debug string output via dprint().
     dprintenable(false);
     pal( WHITE, RED , 3 );
-
-    // Initialize the camera state.
     camera();
 
-    // Clear the entire screen with GREEN.
     cls(req_red ? RED : BLUE);
     req_red = false;
 
-    // Applies depth setting to all subsequent draw calls:
-    // 0 is frontmost, maxz() is backmost.
     setz(maxz()-1);
     camera(cam.x, cam.y);
     map(cam.x, cam.y, BG_0);
 
-    // Set depth to the foreground.
-    setz(maxz()/2);
+    setz(maxz()-3);
 
-    // Set the palette.
     const u8 palsel = 1;
     pal(WHITE, BLACK, palsel);
 
