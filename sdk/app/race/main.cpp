@@ -9,6 +9,8 @@ namespace {
   constexpr int DARK_SCORE = 900; 
   constexpr int CLEAR_SCORE = 1000; 
   constexpr u16 PRIV_KEY = 0x7219; 
+
+  constexpr u16 ZFIFO = 512;
 }
 
 enum class  GameState { Nil, Title, Playing, Clear };
@@ -31,6 +33,24 @@ class RaceApp : public Pico8 {
   int xlast_got_score = 0;
   int cnt_title = 0;
   int cnt_clear = 0;
+
+  // playing 
+  fx8 xCenter[ ZFIFO ];
+
+  void  enterPlaying(){
+    print("\e[2J");
+
+    pos_flyer.set(0,64);
+    v_flyer.set(fx8(2,2),0);
+    xgen_map = pos_flyer.x - 64;
+    ygen = pos_flyer.y;
+    dead = false;
+    score  = 0;
+    disp_score = -1;
+    xlast_got_score = 0;
+    b8PpuBgTile tile = {};
+    mcls(tile);
+  }
 
   int calculatePipeSpan() {
     if (score <= 10) {
@@ -85,20 +105,6 @@ class RaceApp : public Pico8 {
     print("\e[15;4H SC:%d", score );
   }
 
-  void  enterPlaying(){
-    print("\e[2J");
-
-    pos_flyer.set(0,64);
-    v_flyer.set(fx8(2,2),0);
-    xgen_map = pos_flyer.x - 64;
-    ygen = pos_flyer.y;
-    dead = false;
-    score  = 0;
-    disp_score = -1;
-    xlast_got_score = 0;
-    b8PpuBgTile tile = {};
-    mcls(tile);
-  }
 
   void  enterClear(){
     cnt_clear = 0;
