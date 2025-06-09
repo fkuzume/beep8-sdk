@@ -15,9 +15,15 @@ namespace {
   constexpr int YPIX_BOTTOM = 150;
   constexpr int YLEN = YPIX_BOTTOM - YPIX_TOP;
   constexpr int W_NEAR = 110;
+
+  constexpr u16 N_FIFO_MAPDATA = 32;  // must be 2^n
 }
 
 enum class  GameState { Nil, Title, Playing, Clear };
+struct  MapData {
+  fx8 distance;
+  fx8 ax;       // fx8(±21,100)
+};
 
 class RaceApp : public Pico8 {
   int frame = 0;
@@ -34,18 +40,27 @@ class RaceApp : public Pico8 {
   int cnt_playing = 0;
   int cnt_clear = 0;
 
-  // playing 
-  fx8 xCenter[  ZFIFO ];
-  fx8 vxCenter[ ZFIFO ];
+  fx8 distance;
+  u16     upMapData;
+  MapData mapData[ N_FIFO_MAPDATA ];
 
+  // playing 
   void  enterPlaying(){
     print("\e[2J");
+    distance = 0;
 
-    fill(begin(xCenter),  end(xCenter), fx8(0));
-    fill(begin(vxCenter), end(vxCenter),fx8(0));
+    upMapData = 1;
+    for( u16 nn=0 ; nn < N_FIFO_MAPDATA ; ++nn ){
+      MapData& md = mapData[ nn ];
+      md.distance = rndf( 30,100);
+      if( nn <= 2 ){
+        md.ax = 0;
+      } else {
+        md.ax = rndf( fx8(-21,100), fx8(+21,100) );
+      }
+    }
 
     cnt_playing = 0;
-
     dead = false;
     score  = 0;
     disp_score = -1;
@@ -96,6 +111,13 @@ class RaceApp : public Pico8 {
       reqReset = GameState::Clear;
     } else if( dead ){
       reqReset = GameState::Title;
+    }
+
+    distance += fx8(1); // TODO:velocity
+    MapData& md = mapData[ upMapData ];
+    if( distance > md.distance ){
+      distance -= md.distance;
+      upMapData = (upMapData + 1) & (N_FIFO_MAPDATA-1);
     }
   }
 
@@ -233,7 +255,15 @@ class RaceApp : public Pico8 {
         line(0,YPIX_BOTTOM,128,YPIX_BOTTOM,WHITE);
         fx8 x_center = fx8(64);
         fx8 vx_center = 0;
-        fx8 ax_center = fx8(21,100) * pico8::sin( fx8(cnt_playing,100) );
+        //fx8 ax_center = fx8(21,100) * pico8::sin( fx8(cnt_playing,100) );
+
+        const u16 idx_0 = (upMapData - 1)  & (N_FIFO_MAPDATA - 1);
+        const u16 idx_1 = upMapData & (N_FIFO_MAPDATA - 1);
+        const MapData& md_0 = mapData[ idx_0 ];
+        const MapData& md_1 = mapData[ idx_1 ];
+        const fx8 t = distance / md_1.distance;
+        const fx8 ax_center = (fx8(1)-t) * md_0.ax + t * md_1.ax;
+
         const int yspan = 2;
         fx8 width = W_NEAR;
 
