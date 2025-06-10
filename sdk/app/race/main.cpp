@@ -145,6 +145,12 @@ class RaceApp : public Pico8 {
       reqReset = GameState::Title;
     }
 
+    if( btn( BUTTON_LEFT ) ){
+      xCar -= 2;
+    } else if( btn( BUTTON_RIGHT ) ){
+      xCar += 2;
+    }
+
     distance += fx12(1); // TODO:velocity
     MapData& md = mapData[ upMapData ];
     if( distance > md.distance ){
@@ -285,7 +291,9 @@ class RaceApp : public Pico8 {
 
         setz(maxz());
         line_fx12(0,YPIX_BOTTOM,128,YPIX_BOTTOM,WHITE);
-        fx12 x_center = fx12(64);
+        xCam = xCar;
+
+        fx12 x_center = 64;
         fx12 vx_center = 0;
         //fx12 ax_center = fx12(21,100) * pico8::sin( fx12(cnt_playing,100) );
 
@@ -295,21 +303,30 @@ class RaceApp : public Pico8 {
         const u16 idx_1 = upMapData & (N_FIFO_MAPDATA - 1);
         const MapData& md_1 = mapData[ idx_1 ];
 
-        const fx12 t = distance / md_1.distance;
-        const fx12 ax_center = (fx12(1)-t) * md_0.ax + t * md_1.ax;
+        //const fx12 t = distance / md_1.distance;
+        //const fx12 ax_center = (fx12(1)-t) * md_0.ax + t * md_1.ax;
+        const fx12 ax_center = 0;
 
         const fx12 yspan = 2;
-        fx12 width = W_NEAR;
+        //fx12 width = W_NEAR;
         fx12 ox_center;
+
+        const fx12 YRANGE = YPIX_BOTTOM - YPIX_TOP;
 
         for( fx12 y=YPIX_BOTTOM ; y>YPIX_TOP ; y -= yspan ){
           ox_center = x_center;
           vx_center += ax_center;
           x_center  += vx_center;
-          line_fx12(ox_center,y,x_center,y - yspan,DARK_GREY);
-          line_fx12(ox_center-width,y,x_center-width,y - yspan,DARK_GREY);
-          line_fx12(ox_center+width,y,x_center+width,y - yspan,DARK_GREY);
-          width -= fx12(213,100);
+
+          const fx12 tt     = (y - YPIX_TOP ) / YRANGE;
+          const fx12 width  = W_NEAR * tt;
+          const fx12 wc     = -xCam * tt;
+
+          line_fx12(wc+ox_center         ,y,wc+x_center         ,y - yspan,DARK_GREY);
+          line_fx12(wc+ox_center - width ,y,wc+x_center - width ,y - yspan,DARK_GREY);
+          line_fx12(wc+ox_center + width ,y,wc+x_center + width ,y - yspan,DARK_GREY);
+
+//          width -= fx12(213,100);
         }    
 
         // mycar
