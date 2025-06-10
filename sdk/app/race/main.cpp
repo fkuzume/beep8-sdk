@@ -20,6 +20,16 @@ namespace {
 
   static  Xorshift32 xors;
 
+  inline fx8 to_fx8(fx12 v){ return static_cast<fx8>(v); }
+
+  void line_fx12(fx12 x0, fx12 y0, fx12 x1, fx12 y1, Color color) {
+      fx8 ix0 = to_fx8(x0);
+      fx8 iy0 = to_fx8(y0);
+      fx8 ix1 = to_fx8(x1);
+      fx8 iy1 = to_fx8(y1);
+      line(ix0, iy0, ix1, iy1, color);
+  }
+
   fx12 rndf12(fx12 x0, fx12 x1){
     if (x0 > x1) {
       const fx12 temp(x0);
@@ -39,8 +49,8 @@ namespace {
 
 enum class  GameState { Nil, Title, Playing, Clear };
 struct  MapData {
-  fx8 distance;
-  fx8 ax;       // fx8(±21,100)
+  fx12 distance;
+  fx12 ax;       // fx12(±21,100)
 };
 
 class RaceApp : public Pico8 {
@@ -58,7 +68,7 @@ class RaceApp : public Pico8 {
   int cnt_playing = 0;
   int cnt_clear = 0;
 
-  fx8 distance;
+  fx12 distance;
   u16     upMapData;
   MapData mapData[ N_FIFO_MAPDATA ];
 
@@ -70,12 +80,11 @@ class RaceApp : public Pico8 {
     upMapData = 1;
     for( u16 nn=0 ; nn < N_FIFO_MAPDATA ; ++nn ){
       MapData& md = mapData[ nn ];
-      //md.distance = rndf( 30,100);
-      md.distance = rndf(200,300);
+      md.distance = rndf12( 30,100);
       if( nn <= 2 ){
         md.ax = 0;
       } else {
-        md.ax = rndf( fx8(-21,100), fx8(+21,100) );
+        md.ax = rndf12( fx12(-21,100), fx12(+21,100) );
       }
     }
 
@@ -132,7 +141,7 @@ class RaceApp : public Pico8 {
       reqReset = GameState::Title;
     }
 
-    distance += fx8(1); // TODO:velocity
+    distance += fx12(1); // TODO:velocity
     MapData& md = mapData[ upMapData ];
     if( distance > md.distance ){
       distance -= md.distance;
@@ -272,30 +281,29 @@ class RaceApp : public Pico8 {
 
         setz(1);
         line(0,YPIX_BOTTOM,128,YPIX_BOTTOM,WHITE);
-        fx8 x_center = fx8(64);
-        fx8 vx_center = 0;
-        //fx8 ax_center = fx8(21,100) * pico8::sin( fx8(cnt_playing,100) );
+        fx12 x_center = fx12(64);
+        fx12 vx_center = 0;
+        //fx12 ax_center = fx12(21,100) * pico8::sin( fx12(cnt_playing,100) );
 
         const u16 idx_0 = (upMapData - 1)  & (N_FIFO_MAPDATA - 1);
         const u16 idx_1 = upMapData & (N_FIFO_MAPDATA - 1);
         const MapData& md_0 = mapData[ idx_0 ];
         const MapData& md_1 = mapData[ idx_1 ];
-        const fx8 t = distance / md_1.distance;
+        const fx12 t = distance / md_1.distance;
 WATCH( t );
-        const fx8 ax_center = (fx8(1)-t) * md_0.ax + t * md_1.ax;
+        const fx12 ax_center = (fx12(1)-t) * md_0.ax + t * md_1.ax;
 
         const int yspan = 2;
-        fx8 width = W_NEAR;
+        fx12 width = W_NEAR;
 
         for( int y=YPIX_BOTTOM ; y>YPIX_TOP ; y -= yspan ){
-          fx8 ox_center = x_center;
+          fx12 ox_center = x_center;
           vx_center += ax_center;
           x_center  += vx_center;
-          line(ox_center,y,x_center,y - yspan,DARK_GREY);
-
-          line(ox_center-width,y,x_center-width,y - yspan,DARK_GREY);
-          line(ox_center+width,y,x_center+width,y - yspan,DARK_GREY);
-          width -= fx8(213,100);
+          line_fx12(ox_center,y,x_center,y - yspan,DARK_GREY);
+          line_fx12(ox_center-width,y,x_center-width,y - yspan,DARK_GREY);
+          line_fx12(ox_center+width,y,x_center+width,y - yspan,DARK_GREY);
+          width -= fx12(213,100);
         }    
 
       }break;
