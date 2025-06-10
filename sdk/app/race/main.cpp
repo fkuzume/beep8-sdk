@@ -11,10 +11,10 @@ namespace {
   constexpr u16 PRIV_KEY = 0x7219; 
   constexpr u16 ZFIFO = 512;
 
-  constexpr int YPIX_TOP    = 50;
-  constexpr int YPIX_BOTTOM = 150;
-  constexpr int YLEN = YPIX_BOTTOM - YPIX_TOP;
-  constexpr int W_NEAR = 110;
+  constexpr fx12 YPIX_TOP    = 50;
+  constexpr fx12 YPIX_BOTTOM = 150;
+  //constexpr fx12 YLEN = YPIX_BOTTOM - YPIX_TOP;
+  constexpr fx12 W_NEAR = 110;
 
   constexpr u16 N_FIFO_MAPDATA = 32;  // must be 2^n
 
@@ -22,12 +22,12 @@ namespace {
 
   inline fx8 to_fx8(fx12 v){ return static_cast<fx8>(v); }
 
-  void line_fx12(fx12 x0, fx12 y0, fx12 x1, fx12 y1, Color color) {
-      fx8 ix0 = to_fx8(x0);
-      fx8 iy0 = to_fx8(y0);
-      fx8 ix1 = to_fx8(x1);
-      fx8 iy1 = to_fx8(y1);
-      line(ix0, iy0, ix1, iy1, color);
+  inline  void line_fx12(fx12 x0, fx12 y0, fx12 x1, fx12 y1, Color color) {
+    const fx8 ix0 = to_fx8(x0);
+    const fx8 iy0 = to_fx8(y0);
+    const fx8 ix1 = to_fx8(x1);
+    const fx8 iy1 = to_fx8(y1);
+    line(ix0, iy0, ix1, iy1, color);
   }
 
   fx12 rndf12(fx12 x0, fx12 x1){
@@ -68,13 +68,17 @@ class RaceApp : public Pico8 {
   int cnt_playing = 0;
   int cnt_clear = 0;
 
-  fx12 distance;
+  fx12    xCar;
+  fx12    xCam;
+  fx12    distance;
   u16     upMapData;
   MapData mapData[ N_FIFO_MAPDATA ];
 
   // playing 
   void  enterPlaying(){
     print("\e[2J");
+
+    xCam = xCar = 0;
     distance = 0;
 
     upMapData = 1;
@@ -279,25 +283,27 @@ class RaceApp : public Pico8 {
           print("\e[21;1H%d",disp_score);
         }
 
-        setz(1);
-        line(0,YPIX_BOTTOM,128,YPIX_BOTTOM,WHITE);
+        setz(maxz());
+        line_fx12(0,YPIX_BOTTOM,128,YPIX_BOTTOM,WHITE);
         fx12 x_center = fx12(64);
         fx12 vx_center = 0;
         //fx12 ax_center = fx12(21,100) * pico8::sin( fx12(cnt_playing,100) );
 
         const u16 idx_0 = (upMapData - 1)  & (N_FIFO_MAPDATA - 1);
-        const u16 idx_1 = upMapData & (N_FIFO_MAPDATA - 1);
         const MapData& md_0 = mapData[ idx_0 ];
+
+        const u16 idx_1 = upMapData & (N_FIFO_MAPDATA - 1);
         const MapData& md_1 = mapData[ idx_1 ];
+
         const fx12 t = distance / md_1.distance;
-WATCH( t );
         const fx12 ax_center = (fx12(1)-t) * md_0.ax + t * md_1.ax;
 
-        const int yspan = 2;
+        const fx12 yspan = 2;
         fx12 width = W_NEAR;
+        fx12 ox_center;
 
-        for( int y=YPIX_BOTTOM ; y>YPIX_TOP ; y -= yspan ){
-          fx12 ox_center = x_center;
+        for( fx12 y=YPIX_BOTTOM ; y>YPIX_TOP ; y -= yspan ){
+          ox_center = x_center;
           vx_center += ax_center;
           x_center  += vx_center;
           line_fx12(ox_center,y,x_center,y - yspan,DARK_GREY);
@@ -305,6 +311,10 @@ WATCH( t );
           line_fx12(ox_center+width,y,x_center+width,y - yspan,DARK_GREY);
           width -= fx12(213,100);
         }    
+
+        // mycar
+        setz(3);
+
 
       }break;
     }
