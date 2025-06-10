@@ -263,6 +263,7 @@ class RaceApp : public Pico8 {
         const MapData& md_1 = mapData[ idx_1 ];
         const fx8 t = distance / md_1.distance;
         const fx8 ax_center = (fx8(1)-t) * md_0.ax + t * md_1.ax;
+WATCH( ax_center );
 
         const int yspan = 2;
         fx8 width = W_NEAR;
