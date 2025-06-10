@@ -17,6 +17,24 @@ namespace {
   constexpr int W_NEAR = 110;
 
   constexpr u16 N_FIFO_MAPDATA = 32;  // must be 2^n
+
+  static  Xorshift32 xors;
+
+  fx12 rndf12(fx12 x0, fx12 x1){
+    if (x0 > x1) {
+      const fx12 temp(x0);
+      x0 = x1;
+      x1 = temp;
+    }
+
+    const int32_t min_raw = x0.raw_value();
+    const int32_t max_raw = x1.raw_value();
+    const int32_t random_raw = xors.next_range(min_raw, max_raw);
+
+    fx12 result;
+    result.set_raw_value(random_raw);
+    return result;
+  }
 }
 
 enum class  GameState { Nil, Title, Playing, Clear };
@@ -52,7 +70,8 @@ class RaceApp : public Pico8 {
     upMapData = 1;
     for( u16 nn=0 ; nn < N_FIFO_MAPDATA ; ++nn ){
       MapData& md = mapData[ nn ];
-      md.distance = rndf( 30,100);
+      //md.distance = rndf( 30,100);
+      md.distance = rndf(200,300);
       if( nn <= 2 ){
         md.ax = 0;
       } else {
@@ -262,8 +281,8 @@ class RaceApp : public Pico8 {
         const MapData& md_0 = mapData[ idx_0 ];
         const MapData& md_1 = mapData[ idx_1 ];
         const fx8 t = distance / md_1.distance;
+WATCH( t );
         const fx8 ax_center = (fx8(1)-t) * md_0.ax + t * md_1.ax;
-WATCH( ax_center );
 
         const int yspan = 2;
         fx8 width = W_NEAR;
