@@ -2,7 +2,6 @@
 
 using namespace std;  
 using namespace pico8;  
-
 namespace {
   constexpr BgTiles XTILES = TILES_32;
   constexpr BgTiles YTILES = TILES_32;
@@ -11,10 +10,10 @@ namespace {
   constexpr u16 PRIV_KEY = 0x7219; 
   constexpr u16 ZFIFO = 512;
 
-  constexpr fx12 YPIX_TOP    = 50;
+  constexpr fx12 YPIX_TOP    = 70;
   constexpr fx12 YPIX_BOTTOM = 150;
   //constexpr fx12 YLEN = YPIX_BOTTOM - YPIX_TOP;
-  constexpr fx12 W_NEAR = 110;
+  constexpr fx12 W_NEAR = 150;
 
   constexpr u16 N_FIFO_MAPDATA = 32;  // must be 2^n
 
@@ -47,7 +46,22 @@ namespace {
   }
 }
 
+struct  Point {
+  fx12 x;
+  fx12 y;
+};
+
+inline  void line_fx12( const Point& p0, const Point& p1, Color color ){
+  const fx8 ix0 = to_fx8(p0.x);
+  const fx8 iy0 = to_fx8(p0.y);
+  const fx8 ix1 = to_fx8(p1.x);
+  const fx8 iy1 = to_fx8(p1.y);
+  line(ix0, iy0, ix1, iy1, color);
+} 
+
 enum class  GameState { Nil, Title, Playing, Clear };
+
+
 struct  MapData {
   fx12 distance;
   fx12 ax;       // fx12(±21,100)
@@ -146,9 +160,9 @@ class RaceApp : public Pico8 {
     }
 
     if( btn( BUTTON_LEFT ) ){
-      xCar -= 2;
+      xCar -= 4;
     } else if( btn( BUTTON_RIGHT ) ){
-      xCar += 2;
+      xCar += 4;;
     }
 
     distance += fx12(1); // TODO:velocity
@@ -251,7 +265,7 @@ class RaceApp : public Pico8 {
     camera();
 
     if( status != GameState::Clear ){
-      cls( DARK_BLUE );
+      cls( BLACK );
     } else {
       if( cnt_clear < 50 ){ 
         cls( static_cast< Color >( (cnt_clear>>2) & 15 ) );
@@ -303,9 +317,9 @@ class RaceApp : public Pico8 {
         const u16 idx_1 = upMapData & (N_FIFO_MAPDATA - 1);
         const MapData& md_1 = mapData[ idx_1 ];
 
-        //const fx12 t = distance / md_1.distance;
-        //const fx12 ax_center = (fx12(1)-t) * md_0.ax + t * md_1.ax;
-        const fx12 ax_center = 0;
+        const fx12 t = distance / md_1.distance;
+        const fx12 ax_center = (fx12(1)-t) * md_0.ax + t * md_1.ax;
+        //const fx12 ax_center = 0;
 
         const fx12 yspan = 2;
         //fx12 width = W_NEAR;
@@ -313,7 +327,11 @@ class RaceApp : public Pico8 {
 
         const fx12 YRANGE = YPIX_BOTTOM - YPIX_TOP;
 
-        for( fx12 y=YPIX_BOTTOM ; y>YPIX_TOP ; y -= yspan ){
+        Point pcenter;
+        Point pleft;
+        Point pright;
+        int nn = 0;
+        for( fx12 y=YPIX_BOTTOM ; y>YPIX_TOP ; y -= yspan , ++nn ){
           ox_center = x_center;
           vx_center += ax_center;
           x_center  += vx_center;
@@ -322,11 +340,31 @@ class RaceApp : public Pico8 {
           const fx12 width  = W_NEAR * tt;
           const fx12 wc     = -xCam * tt;
 
-          line_fx12(wc+ox_center         ,y,wc+x_center         ,y - yspan,DARK_GREY);
-          line_fx12(wc+ox_center - width ,y,wc+x_center - width ,y - yspan,DARK_GREY);
-          line_fx12(wc+ox_center + width ,y,wc+x_center + width ,y - yspan,DARK_GREY);
+          Point center;
+          center.x = wc+ox_center;
+          center.y = y;
 
-//          width -= fx12(213,100);
+          Point left = center;
+          left.x -= width;
+
+          Point right = center;
+          right.x += width;
+
+          if( nn > 0 ){
+#if 0
+            line_fx12(wc+ox_center         ,y,wc+x_center         ,y - yspan,DARK_GREY);
+            line_fx12(wc+ox_center - width ,y,wc+x_center - width ,y - yspan,DARK_GREY);
+            line_fx12(wc+ox_center + width ,y,wc+x_center + width ,y - yspan,DARK_GREY);
+#else
+            line_fx12(pcenter,center, DARK_GREY);
+            line_fx12(pleft,  left,   DARK_GREY);
+            line_fx12(pright, right,  DARK_GREY);
+#endif
+          }
+
+          pcenter = center;
+          pleft   = left;
+          pright  = right;
         }    
 
         // mycar
