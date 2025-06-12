@@ -17,22 +17,24 @@ namespace {
 
   constexpr u16 N_FIFO_MAPDATA = 32;  // must be 2^n
 
+  constexpr fx12 X_SCREEN_OFFSET = 64;
+
   static  Xorshift32 xors;
 
   inline fx8 to_fx8(fx12 v){ return static_cast<fx8>(v); }
 
-  inline  void line_fx12(fx12 x0, fx12 y0, fx12 x1, fx12 y1, Color color) {
-    const fx8 ix0 = to_fx8(x0);
+  inline  void line_fx12(fx12 x0, fx12 y0, fx12 x1, fx12 y1, Color color,fx12 sx=0) {
+    const fx8 ix0 = to_fx8(x0+sx);
     const fx8 iy0 = to_fx8(y0);
-    const fx8 ix1 = to_fx8(x1);
+    const fx8 ix1 = to_fx8(x1+sx);
     const fx8 iy1 = to_fx8(y1);
     line(ix0, iy0, ix1, iy1, color);
   }
 
-  inline  void rectfill_fx12(fx12 x0, fx12 y0, fx12 x1, fx12 y1, Color color) {
-    const fx8 ix0 = to_fx8(x0);
+  inline  void rectfill_fx12(fx12 x0, fx12 y0, fx12 x1, fx12 y1, Color color,fx12 sx=0) {
+    const fx8 ix0 = to_fx8(x0+sx);
     const fx8 iy0 = to_fx8(y0);
-    const fx8 ix1 = to_fx8(x1);
+    const fx8 ix1 = to_fx8(x1+sx);
     const fx8 iy1 = to_fx8(y1);
     rectfill(ix0, iy0, ix1, iy1, color);
   }
@@ -59,10 +61,10 @@ struct  Point {
   fx12 y;
 };
 
-inline  void line_fx12( const Point& p0, const Point& p1, Color color ){
-  const fx8 ix0 = to_fx8(p0.x);
+inline  void line_fx12( const Point& p0, const Point& p1, Color color, fx12 sx=0 ){
+  const fx8 ix0 = to_fx8(p0.x + sx);
   const fx8 iy0 = to_fx8(p0.y);
-  const fx8 ix1 = to_fx8(p1.x);
+  const fx8 ix1 = to_fx8(p1.x + sx);
   const fx8 iy1 = to_fx8(p1.y);
   line(ix0, iy0, ix1, iy1, color);
 } 
@@ -73,6 +75,23 @@ enum class  GameState { Nil, Title, Playing, Clear };
 struct  MapData {
   fx12 distance;
   fx12 ax;       // fx12(±21,100)
+};
+
+struct  Obj {
+  size_t idx;
+  enum State : uint8_t {
+    Disappear,
+    Appear
+  };
+  enum DrawType : uint8_t {
+    Nothing,
+    Car
+  };
+  State state       = Disappear;
+  DrawType drawType = Nothing;
+
+  fx12 z;
+  fx12 vz = 0;
 };
 
 class RaceApp : public Pico8 {
@@ -95,6 +114,7 @@ class RaceApp : public Pico8 {
   fx12    distance;
   u16     upMapData;
   MapData mapData[ N_FIFO_MAPDATA ];
+  vector< Obj > objs = std::vector< Obj >(64);
 
   // playing 
   void  enterPlaying(){
@@ -271,15 +291,14 @@ class RaceApp : public Pico8 {
     const fx12 wCar = 20; 
     rectfill_fx12(
       xCar - wCar - xCam,
-      YPIX_BOTTOM - 4, 
+      YPIX_BOTTOM - 12, 
 
       xCar + wCar - xCam,
-      YPIX_BOTTOM + 4,
+      YPIX_BOTTOM - 4,
 
-      LIGHT_PEACH
+      LIGHT_PEACH,
+      X_SCREEN_OFFSET
     );
-
-
   }
 
   void _draw() override {
@@ -331,7 +350,8 @@ class RaceApp : public Pico8 {
         line_fx12(0,YPIX_BOTTOM,128,YPIX_BOTTOM,WHITE);
         xCam = xCar;
 
-        fx12 x_center = 64;
+        //fx12 x_center = 64;
+        fx12 x_center = 0;
         fx12 vx_center = 0;
         //fx12 ax_center = fx12(21,100) * pico8::sin( fx12(cnt_playing,100) );
 
@@ -368,7 +388,7 @@ class RaceApp : public Pico8 {
           const fx12 wc     = -xCam * tt;
 
           Point center;
-          center.x = wc+ox_center;
+          center.x = wc + ox_center;
           center.y = y;
 
           Point left = center;
@@ -378,9 +398,9 @@ class RaceApp : public Pico8 {
           right.x += width;
 
           if( nn > 0 ){
-            line_fx12(pcenter,center, DARK_GREY);
-            line_fx12(pleft,  left,   DARK_GREY);
-            line_fx12(pright, right,  DARK_GREY);
+            line_fx12(pcenter,center, DARK_GREY, X_SCREEN_OFFSET);
+            line_fx12(pleft,  left,   DARK_GREY, X_SCREEN_OFFSET);
+            line_fx12(pright, right,  DARK_GREY, X_SCREEN_OFFSET);
           }
 
           pcenter = center;
