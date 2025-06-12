@@ -112,9 +112,23 @@ class RaceApp : public Pico8 {
   fx12    xCar;
   fx12    xCam;
   fx12    distance;
+  fx12    every_50_distance;
   u16     upMapData;
   MapData mapData[ N_FIFO_MAPDATA ];
-  vector< Obj > objs = std::vector< Obj >(64);
+  vector< Obj > objs = std::vector< Obj >(32);
+
+  optional<size_t> allocObj(){
+    for (size_t i = 0; i < objs.size(); ++i) {
+      if (objs[i].state != Obj::Disappear) continue;
+
+      Obj obj;
+      obj.idx = i;
+      obj.state = Obj::Appear;
+      objs[i] = obj;
+      return i;
+    }
+    return std::nullopt;
+  }
 
   // playing 
   void  enterPlaying(){
@@ -122,6 +136,7 @@ class RaceApp : public Pico8 {
 
     xCam = xCar = 0;
     distance = 0;
+    every_50_distance = 0;
 
     upMapData = 1;
     for( u16 nn=0 ; nn < N_FIFO_MAPDATA ; ++nn ){
@@ -193,7 +208,13 @@ class RaceApp : public Pico8 {
       xCar += 4;;
     }
 
-    distance += fx12(1); // TODO:velocity
+    distance += fx12(1);          // TODO:velocity
+    every_50_distance += fx12(1); // TODO:velocity
+    if( every_50_distance > fx12(50) ){
+      every_50_distance -= fx12(50);
+      PASS();
+    }
+
     MapData& md = mapData[ upMapData ];
     if( distance > md.distance ){
       distance -= md.distance;
