@@ -29,6 +29,14 @@ namespace {
     line(ix0, iy0, ix1, iy1, color);
   }
 
+  inline  void rectfill_fx12(fx12 x0, fx12 y0, fx12 x1, fx12 y1, Color color) {
+    const fx8 ix0 = to_fx8(x0);
+    const fx8 iy0 = to_fx8(y0);
+    const fx8 ix1 = to_fx8(x1);
+    const fx8 iy1 = to_fx8(y1);
+    rectfill(ix0, iy0, ix1, iy1, color);
+  }
+
   fx12 rndf12(fx12 x0, fx12 x1){
     if (x0 > x1) {
       const fx12 temp(x0);
@@ -258,6 +266,22 @@ class RaceApp : public Pico8 {
     }
   }
 
+  void  drawMyCar(){
+//void rectfill(fx8 x0, fx8 y0, fx8 x1, fx8 y1, Color color) {
+    const fx12 wCar = 20; 
+    rectfill_fx12(
+      xCar - wCar - xCam,
+      YPIX_BOTTOM - 4, 
+
+      xCar + wCar - xCam,
+      YPIX_BOTTOM + 4,
+
+      LIGHT_PEACH
+    );
+
+
+  }
+
   void _draw() override {
     // Enable or disable the debug string output via dprint().
     dprintenable(false);
@@ -321,7 +345,7 @@ class RaceApp : public Pico8 {
         const fx12 ax_center = (fx12(1)-t) * md_0.ax + t * md_1.ax;
         //const fx12 ax_center = 0;
 
-        const fx12 yspan = 2;
+        const fx12 yspan = 4;
         //fx12 width = W_NEAR;
         fx12 ox_center;
 
@@ -333,6 +357,9 @@ class RaceApp : public Pico8 {
         int nn = 0;
         for( fx12 y=YPIX_BOTTOM ; y>YPIX_TOP ; y -= yspan , ++nn ){
           ox_center = x_center;
+
+          vx_center += ax_center;
+          x_center  += vx_center;
           vx_center += ax_center;
           x_center  += vx_center;
 
@@ -351,15 +378,9 @@ class RaceApp : public Pico8 {
           right.x += width;
 
           if( nn > 0 ){
-#if 0
-            line_fx12(wc+ox_center         ,y,wc+x_center         ,y - yspan,DARK_GREY);
-            line_fx12(wc+ox_center - width ,y,wc+x_center - width ,y - yspan,DARK_GREY);
-            line_fx12(wc+ox_center + width ,y,wc+x_center + width ,y - yspan,DARK_GREY);
-#else
             line_fx12(pcenter,center, DARK_GREY);
             line_fx12(pleft,  left,   DARK_GREY);
             line_fx12(pright, right,  DARK_GREY);
-#endif
           }
 
           pcenter = center;
@@ -369,8 +390,7 @@ class RaceApp : public Pico8 {
 
         // mycar
         setz(3);
-
-
+        drawMyCar();
       }break;
     }
 
