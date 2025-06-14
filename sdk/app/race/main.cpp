@@ -9,6 +9,8 @@ namespace {
   constexpr int CLEAR_SCORE = 1000; 
   constexpr u16 PRIV_KEY = 0x7219; 
   constexpr u16 ZFIFO = 512;
+  constexpr size_t NOBJ = 16;
+  constexpr int YSPAN = 4;
 
   constexpr fx12 YPIX_TOP    = 70;
   constexpr fx12 YPIX_BOTTOM = 150;
@@ -119,7 +121,7 @@ class RaceApp : public Pico8 {
   fx12    every_50_distance;
   u16     upMapData;
   MapData mapData[ N_FIFO_MAPDATA ];
-  vector< Obj > objs = std::vector< Obj >(32);
+  vector< Obj > objs = std::vector< Obj >( NOBJ );
 
   optional<size_t> allocObj(){
     for (size_t i = 0; i < objs.size(); ++i) {
@@ -138,7 +140,7 @@ class RaceApp : public Pico8 {
   // playing 
   void  enterPlaying(){
     print("\e[2J");
-    objs = std::vector< Obj >(32);
+    objs = std::vector< Obj >( NOBJ );
 
     xCam = xCar = 0;
     distance = 0;
@@ -218,14 +220,17 @@ class RaceApp : public Pico8 {
     every_50_distance += fx12(1); // TODO:velocity
     if( every_50_distance > fx12(50) ){
       every_50_distance -= fx12(50);
-      PASS();
-
-      auto idobj = allocObj();
-      if( idobj ){
-        Obj& obj = objs[ idobj.value() ];
-        obj.x = 0;
-        obj.z = YPIX_TOP;
-        obj.vz =0;
+static bool flg = false;
+      if( !flg ){
+        flg = true;
+        auto idobj = allocObj();
+        if( idobj ){
+          Obj& obj = objs[ idobj.value() ];
+          obj.x = 0;
+PASS();
+          obj.z = YPIX_TOP;
+          obj.vz =0;
+        }
       }
     }
 
@@ -235,10 +240,9 @@ class RaceApp : public Pico8 {
       upMapData = (upMapData + 1) & (N_FIFO_MAPDATA-1);
     }
 
-    for( auto obj : objs ){
+    for( auto& obj : objs ){
       obj.update();
     }
-
   }
 
   void  enterTitle(){
@@ -405,7 +409,7 @@ class RaceApp : public Pico8 {
         const fx12 ax_center = (fx12(1)-t) * md_0.ax + t * md_1.ax;
         //const fx12 ax_center = 0;
 
-        const fx12 yspan = 4;
+        const fx12 yspan( YSPAN );
         //fx12 width = W_NEAR;
         fx12 ox_center;
 
@@ -447,12 +451,16 @@ class RaceApp : public Pico8 {
           pleft   = left;
           pright  = right;
 
-          const int iy = static_cast< int >( y );
-          for( auto obj : objs ){
+          const int iy = static_cast< int >( y ) - YPIX_TOP;
+          for( auto& obj : objs ){
             if( obj.state == Obj::Disappear )       continue;
-            if( iy != static_cast< int >( obj.z ) ) continue; // TODO: iy != obj.z
-
-            obj.draw(t,ox_center,wc,y);
+            const int objz = static_cast< int >( obj.z );
+WATCH(iy);
+WATCH(objz);
+            if( objz >= iy && objz < iy + YSPAN ){
+              PASS();
+              obj.draw(t,ox_center,wc,y);
+            }
           }
         }    
 
@@ -464,18 +472,13 @@ class RaceApp : public Pico8 {
 
     camera();
     setz(maxz());
-
-#if 0
-    for( auto obj : objs ){
-      obj.draw();
-    }
-#endif
   }
 public: virtual ~RaceApp(){}
 };
 
 void  Obj::update(){
   if( state == Disappear ) return;
+  this->z -= 1;
 }
 
 void  Obj::draw(fx12 t,fx12 x_center,fx12 wc,fx12 y){
