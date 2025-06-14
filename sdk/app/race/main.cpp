@@ -90,8 +90,12 @@ struct  Obj {
   State state       = Disappear;
   DrawType drawType = Nothing;
 
-  fx12 z;
+  fx12 x = 0;
+  fx12 z = 0;
   fx12 vz = 0;
+
+  void  update();
+  void  draw(fx12 t,fx12 x_center,fx12 wc,fx12 y);
 };
 
 class RaceApp : public Pico8 {
@@ -130,9 +134,11 @@ class RaceApp : public Pico8 {
     return std::nullopt;
   }
 
+
   // playing 
   void  enterPlaying(){
     print("\e[2J");
+    objs = std::vector< Obj >(32);
 
     xCam = xCar = 0;
     distance = 0;
@@ -213,6 +219,14 @@ class RaceApp : public Pico8 {
     if( every_50_distance > fx12(50) ){
       every_50_distance -= fx12(50);
       PASS();
+
+      auto idobj = allocObj();
+      if( idobj ){
+        Obj& obj = objs[ idobj.value() ];
+        obj.x = 0;
+        obj.z = YPIX_TOP;
+        obj.vz =0;
+      }
     }
 
     MapData& md = mapData[ upMapData ];
@@ -220,6 +234,11 @@ class RaceApp : public Pico8 {
       distance -= md.distance;
       upMapData = (upMapData + 1) & (N_FIFO_MAPDATA-1);
     }
+
+    for( auto obj : objs ){
+      obj.update();
+    }
+
   }
 
   void  enterTitle(){
@@ -427,6 +446,14 @@ class RaceApp : public Pico8 {
           pcenter = center;
           pleft   = left;
           pright  = right;
+
+          const int iy = static_cast< int >( y );
+          for( auto obj : objs ){
+            if( obj.state == Obj::Disappear )       continue;
+            if( iy != static_cast< int >( obj.z ) ) continue; // TODO: iy != obj.z
+
+            obj.draw(t,ox_center,wc,y);
+          }
         }    
 
         // mycar
@@ -437,10 +464,37 @@ class RaceApp : public Pico8 {
 
     camera();
     setz(maxz());
-    //spr(SPR_CLOUD, (((255-(frame>>2)))&255)-64,7,4,4);
+
+#if 0
+    for( auto obj : objs ){
+      obj.draw();
+    }
+#endif
   }
 public: virtual ~RaceApp(){}
 };
+
+void  Obj::update(){
+  if( state == Disappear ) return;
+}
+
+void  Obj::draw(fx12 t,fx12 x_center,fx12 wc,fx12 y){
+  if( state == Disappear ) return;
+  PASS();
+
+  constexpr fx12 W_CAR = 35;
+  const fx12 width  = W_CAR * t;
+
+  Point ll;
+  ll.x = wc + x_center - width; 
+  ll.y = y;
+
+  Point rr;
+  rr.x = wc + x_center + width; 
+  rr.y = y;
+
+  line_fx12(ll,rr,RED,X_SCREEN_OFFSET);
+}
 
 int main() {
   RaceApp  app;
