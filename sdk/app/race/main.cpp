@@ -60,15 +60,15 @@ namespace {
   constexpr fx12  v100(100);
   constexpr fx12  v10000(10000);
   constexpr size_t NTBL = 400;
-  static  int tblz2y[ NTBL ];
+  static  s16 tblz2y[ NTBL ];
 
   void  genTableZ2Y(){
     for( int z=0 ; z<NTBL ; ++z ){
-      tblz2y[ z ] = YPIX_BOTTOM - ( v100 - v10000/(z+v100) );
+      tblz2y[ z ] = static_cast< s16 >( YPIX_BOTTOM - ( v100 - v10000/(z+v100) ) );
     }
   }
 
-  fx12  z2y( fx12 z ){
+  s16   z2y( fx12 z ){
     int iz = static_cast< int >( z );
     if( iz < 0 )      iz = 0;
     if( iz > NTBL-1 ) iz = NTBL-1;
@@ -246,8 +246,8 @@ class RaceApp : public Pico8 {
 
     distance += fx12(1);          // TODO:velocity
     every_50_distance += fx12(1); // TODO:velocity
-    if( every_50_distance > fx12(50) ){
-      every_50_distance -= fx12(50);
+    if( every_50_distance > fx12(25) ){
+      every_50_distance -= fx12(25);
 static bool flg = false;
       if( !flg ){
         //flg = true;
@@ -482,15 +482,14 @@ static bool flg = false;
           pleft   = left;
           pright  = right;
 
-          const int iy = static_cast< int >( y );
+          const s16 iy = static_cast< s16 >( y );
           for( auto& obj : objs ){
             if( obj.state == Obj::Disappear ) continue;
             if( obj.isDrawed ) continue;
 
-            const fx12 objy = z2y(obj.z);
-            const int iobjy = static_cast< int >( objy );
+            const s16 iobjy = z2y(obj.z);
             if( iobjy >= iy && iobjy < iy + YSPAN ){
-              obj.draw(tt,ox_center,wc,objy);
+              obj.draw(tt,ox_center,wc,iobjy);
             }
           }
         }    
