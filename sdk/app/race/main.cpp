@@ -58,7 +58,7 @@ namespace {
   }
 
   // https://www.geogebra.org/graphing?lang=ja
-  constexpr size_t NTBL = 400;
+  constexpr int NTBL = 400;
   static  s16 tblz2y[ NTBL ];
 
   void  genTableZ2Y(){
@@ -144,6 +144,7 @@ class RaceApp : public Pico8 {
   int cnt_clear = 0;
 
   fx12    xCar;
+  fx12    vzCar;
   fx12    xCam;
   fx12    distance;
   fx12    every_50_distance;
@@ -170,7 +171,7 @@ class RaceApp : public Pico8 {
     print("\e[2J");
     objs = std::vector< Obj >( NOBJ );
 
-    xCam = xCar = 0;
+    xCam = xCar = vzCar = 0;
     distance = 0;
     every_50_distance = 0;
 
@@ -245,7 +246,19 @@ class RaceApp : public Pico8 {
       xCar += 8;;
     }
 
+    if( btn( BUTTON_O ) || btn( BUTTON_X ) ){
+      vzCar += fx12(10,100);
+    } else {
+      vzCar += fx12(3,100);
+    }
+    vzCar = std::clamp(vzCar, fx12(0), fx12(1));
+
+    #if 0
     distance += fx12(1);          // TODO:velocity
+    #else
+    distance += vzCar;
+    WATCH(distance );
+    #endif
     every_50_distance += fx12(1); // TODO:velocity
     if( every_50_distance > fx12(50) ){
       every_50_distance -= fx12(50);
@@ -519,6 +532,7 @@ void  Obj::update(){
   //this->z -= fx12(10,100);
   //this->z -= 5;
   this->z -= 1;
+
   if( this->z < -20 ){
     state = Disappear;
   }
@@ -541,7 +555,7 @@ void  Obj::draw(fx12 t,fx12 x_center,fx12 xCam,fx12 y){
 }
 
 int main() {
-  RaceApp  app;
+  static  RaceApp  app;
   app.run();
   return 0;
 }
