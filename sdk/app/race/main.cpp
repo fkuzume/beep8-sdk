@@ -222,7 +222,7 @@ class RaceApp : public Pico8 {
       every_50_distance -= fx12(50);
 static bool flg = false;
       if( !flg ){
-        flg = true;
+        //flg = true;
         auto idobj = allocObj();
         if( idobj ){
           Obj& obj = objs[ idobj.value() ];
@@ -397,7 +397,6 @@ PASS();
         //fx12 x_center = 64;
         fx12 x_center = 0;
         fx12 vx_center = 0;
-        fx12 ax_center = 0;
         //fx12 ax_center = fx12(21,100) * pico8::sin( fx12(cnt_playing,100) );
 
         const u16 idx_0 = (upMapData - 1)  & (N_FIFO_MAPDATA - 1);
@@ -407,7 +406,7 @@ PASS();
         const MapData& md_1 = mapData[ idx_1 ];
 
         const fx12 t = distance / md_1.distance;
-        //const fx12 ax_center = (fx12(1)-t) * md_0.ax + t * md_1.ax;
+        const fx12 ax_center = (fx12(1)-t) * md_0.ax + t * md_1.ax;
         //const fx12 ax_center = 0;
 
         const fx12 yspan( YSPAN );
@@ -480,7 +479,6 @@ void  Obj::update(){
   this->z -= 1;
   if( this->z < -20 ){
     state = Disappear;
-    PASS();
   }
 }
 
