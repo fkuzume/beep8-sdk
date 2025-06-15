@@ -76,13 +76,15 @@ struct  Point {
 };
 
 inline  void line_fx12( const Point& p0, const Point& p1, Color color, fx12 sx=0 ){
-  const fx8 ix0 = to_fx8(p0.x + sx);
-  const fx8 iy0 = to_fx8(p0.y);
-  const fx8 ix1 = to_fx8(p1.x + sx);
-  const fx8 iy1 = to_fx8(p1.y);
-
-//void  line(const Line& ln, Color color ){
-  line(ix0, iy0, ix1, iy1, color);
+  const Vec pos0(
+    to_fx8(p0.x + sx),
+    to_fx8(p0.y)
+  );
+  const Vec pos1(
+    to_fx8(p1.x + sx),
+    to_fx8(p1.y)
+  );
+  line( Line( pos0, pos1 ) , color );
 } 
 
 enum class  GameState { Nil, Title, Playing, Clear };
@@ -236,12 +238,11 @@ class RaceApp : public Pico8 {
       every_50_distance -= fx12(50);
 static bool flg = false;
       if( !flg ){
-        flg = true;
+        //flg = true;
         auto idobj = allocObj();
         if( idobj ){
           Obj& obj = objs[ idobj.value() ];
           obj.x = 0;
-PASS();
           obj.z = 400;
           obj.vz =0;
         }
@@ -360,7 +361,6 @@ PASS();
   }
 
   void _draw() override {
-printf("---\n");
     // Enable or disable the debug string output via dprint().
     dprintenable(false);
     pal( WHITE, RED , 3 );
@@ -456,11 +456,13 @@ printf("---\n");
           Point right = center;
           right.x += width;
 
+#if 0
           if( nn > 0 ){
             line_fx12(pcenter,center, DARK_GREY, X_SCREEN_OFFSET);
             line_fx12(pleft,  left,   DARK_GREY, X_SCREEN_OFFSET);
             line_fx12(pright, right,  DARK_GREY, X_SCREEN_OFFSET);
           }
+#endif
 
           pcenter = center;
           pleft   = left;
@@ -503,14 +505,12 @@ void  Obj::draw(fx12 t,fx12 x_center,fx12 wc,fx12 y){
   if( y < YPIX_TOP )    return;
   if( y > YPIX_BOTTOM ) return;
   constexpr fx12 W_CAR = 35;
-  const fx12 width  = W_CAR * t;
-
-  Point ll(
+  const fx12 width = W_CAR * t;
+  const Point ll(
     wc + x_center - width,
     y
   );
-
-  Point rr(
+  const Point rr(
     wc + x_center + width,
     y
   );

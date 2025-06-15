@@ -5,7 +5,7 @@ PROJECT := $(notdir $(CURDIR))
 
 # Uncomment the following line to enable .lst (assembly listing) file generation.
 # This will slightly increase the build time due to the extra output step.
-# EXPORT_LIST = 1
+EXPORT_LIST = 1
 
 # Include the common application Makefile
 # This file contains shared build rules and toolchain settings
