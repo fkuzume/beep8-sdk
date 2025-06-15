@@ -58,7 +58,8 @@ namespace {
   }
 
   fx12  z2y( fx12 z ){
-    return  YPIX_BOTTOM - z;
+    //return  YPIX_BOTTOM - z;
+    return  YPIX_BOTTOM - (fx12(100) - fx12(10000) / (z+fx12(100)));
   }
 
 } // local namespace
@@ -216,9 +217,9 @@ class RaceApp : public Pico8 {
     }
 
     if( btn( BUTTON_LEFT ) ){
-      xCar -= 4;
+      xCar -= 8;
     } else if( btn( BUTTON_RIGHT ) ){
-      xCar += 4;;
+      xCar += 8;;
     }
 
     distance += fx12(1);          // TODO:velocity
@@ -233,7 +234,7 @@ static bool flg = false;
           Obj& obj = objs[ idobj.value() ];
           obj.x = 0;
 PASS();
-          obj.z = 80;
+          obj.z = 400;
           obj.vz =0;
         }
       }
@@ -481,7 +482,7 @@ public: virtual ~RaceApp(){}
 void  Obj::update(){
   if( state == Disappear ) return;
   //this->z -= fx12(10,100);
-  this->z -= 1;
+  this->z -= 5;
   if( this->z < -20 ){
     state = Disappear;
   }
