@@ -255,7 +255,7 @@ static bool flg = false;
         auto idobj = allocObj();
         if( idobj ){
           Obj& obj = objs[ idobj.value() ];
-          obj.x = 0;
+          obj.x = -40;
           obj.z = 400;
           obj.vz =0;
         }
