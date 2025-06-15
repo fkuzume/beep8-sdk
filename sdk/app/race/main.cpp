@@ -228,7 +228,7 @@ static bool flg = false;
           Obj& obj = objs[ idobj.value() ];
           obj.x = 0;
 PASS();
-          obj.z = YPIX_TOP;
+          obj.z = 80;
           obj.vz =0;
         }
       }
@@ -397,6 +397,7 @@ PASS();
         //fx12 x_center = 64;
         fx12 x_center = 0;
         fx12 vx_center = 0;
+        fx12 ax_center = 0;
         //fx12 ax_center = fx12(21,100) * pico8::sin( fx12(cnt_playing,100) );
 
         const u16 idx_0 = (upMapData - 1)  & (N_FIFO_MAPDATA - 1);
@@ -406,7 +407,7 @@ PASS();
         const MapData& md_1 = mapData[ idx_1 ];
 
         const fx12 t = distance / md_1.distance;
-        const fx12 ax_center = (fx12(1)-t) * md_0.ax + t * md_1.ax;
+        //const fx12 ax_center = (fx12(1)-t) * md_0.ax + t * md_1.ax;
         //const fx12 ax_center = 0;
 
         const fx12 yspan( YSPAN );
@@ -451,15 +452,12 @@ PASS();
           pleft   = left;
           pright  = right;
 
-          const int iy = static_cast< int >( y ) - YPIX_TOP;
+          const int iy = static_cast< int >( y );
           for( auto& obj : objs ){
             if( obj.state == Obj::Disappear )       continue;
-            const int objz = static_cast< int >( obj.z );
-WATCH(iy);
-WATCH(objz);
-            if( objz >= iy && objz < iy + YSPAN ){
-              PASS();
-              obj.draw(t,ox_center,wc,y);
+            const int objy = static_cast< int >( YPIX_BOTTOM - obj.z );
+            if( objy >= iy && objy < iy + YSPAN ){
+              obj.draw(tt,ox_center,wc,YPIX_BOTTOM - obj.z);
             }
           }
         }    
@@ -478,12 +476,18 @@ public: virtual ~RaceApp(){}
 
 void  Obj::update(){
   if( state == Disappear ) return;
+  //this->z -= fx12(10,100);
   this->z -= 1;
+  if( this->z < -20 ){
+    state = Disappear;
+    PASS();
+  }
 }
 
 void  Obj::draw(fx12 t,fx12 x_center,fx12 wc,fx12 y){
   if( state == Disappear ) return;
-  PASS();
+  if( y < YPIX_TOP )    return;
+  if( y > YPIX_BOTTOM ) return;
 
   constexpr fx12 W_CAR = 35;
   const fx12 width  = W_CAR * t;
