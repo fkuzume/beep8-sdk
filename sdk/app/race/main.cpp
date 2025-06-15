@@ -56,7 +56,12 @@ namespace {
     result.set_raw_value(random_raw);
     return result;
   }
-}
+
+  fx12  z2y( fx12 z ){
+    return  YPIX_BOTTOM - z;
+  }
+
+} // local namespace
 
 struct  Point {
   fx12 x;
@@ -454,9 +459,9 @@ PASS();
           const int iy = static_cast< int >( y );
           for( auto& obj : objs ){
             if( obj.state == Obj::Disappear )       continue;
-            const int objy = static_cast< int >( YPIX_BOTTOM - obj.z );
+            const int objy = static_cast< int >( z2y(obj.z) );
             if( objy >= iy && objy < iy + YSPAN ){
-              obj.draw(tt,ox_center,wc,YPIX_BOTTOM - obj.z);
+              obj.draw(tt,ox_center,wc,z2y(obj.z) );
             }
           }
         }    
