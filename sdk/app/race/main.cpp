@@ -111,7 +111,7 @@ struct  Obj {
   fx12 x = 0;
   fx12 z = 0;
   fx12 vz = 0;
-
+  bool isDrawed = false;
   void  update();
   void  draw(fx12 t,fx12 x_center,fx12 wc,fx12 y);
 };
@@ -409,7 +409,6 @@ static bool flg = false;
         line_fx12(0,YPIX_BOTTOM,128,YPIX_BOTTOM,WHITE);
         xCam = xCar;
 
-        //fx12 x_center = 64;
         fx12 x_center = 0;
         fx12 vx_center = 0;
         //fx12 ax_center = fx12(21,100) * pico8::sin( fx12(cnt_playing,100) );
@@ -429,6 +428,11 @@ static bool flg = false;
         fx12 ox_center;
 
         const fx12 YRANGE = YPIX_BOTTOM - YPIX_TOP;
+
+        for( auto& obj : objs ){
+          if( obj.state == Obj::Disappear ) continue;
+          obj.isDrawed = false; 
+        }
 
         Point pcenter;
         Point pleft;
@@ -456,13 +460,11 @@ static bool flg = false;
           Point right = center;
           right.x += width;
 
-#if 0
           if( nn > 0 ){
             line_fx12(pcenter,center, DARK_GREY, X_SCREEN_OFFSET);
             line_fx12(pleft,  left,   DARK_GREY, X_SCREEN_OFFSET);
             line_fx12(pright, right,  DARK_GREY, X_SCREEN_OFFSET);
           }
-#endif
 
           pcenter = center;
           pleft   = left;
@@ -470,10 +472,13 @@ static bool flg = false;
 
           const int iy = static_cast< int >( y );
           for( auto& obj : objs ){
-            if( obj.state == Obj::Disappear )       continue;
-            const int objy = static_cast< int >( z2y(obj.z) );
-            if( objy >= iy && objy < iy + YSPAN ){
-              obj.draw(tt,ox_center,wc,z2y(obj.z) );
+            if( obj.state == Obj::Disappear ) continue;
+            if( obj.isDrawed ) continue;
+
+            const fx12 objy = z2y(obj.z);
+            const int iobjy = static_cast< int >( objy );
+            if( iobjy >= iy && iobjy < iy + YSPAN ){
+              obj.draw(tt,ox_center,wc,objy);
             }
           }
         }    
@@ -492,6 +497,9 @@ public: virtual ~RaceApp(){}
 
 void  Obj::update(){
   if( state == Disappear ) return;
+
+  isDrawed = false;
+
   //this->z -= fx12(10,100);
   //this->z -= 5;
   this->z -= 1;
@@ -502,6 +510,7 @@ void  Obj::update(){
 
 void  Obj::draw(fx12 t,fx12 x_center,fx12 wc,fx12 y){
   if( state == Disappear ) return;
+  isDrawed = true;
   if( y < YPIX_TOP )    return;
   if( y > YPIX_BOTTOM ) return;
   constexpr fx12 W_CAR = 35;
