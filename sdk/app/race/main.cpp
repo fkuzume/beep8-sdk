@@ -494,7 +494,11 @@ static bool flg = false;
             const s16 iobjy = z2y(obj.z);
             if( iobjy >= iy && iobjy < iy + YSPAN ){
               //obj.draw(tt,ox_center,wc,iobjy);
-              obj.draw(tt,ox_center,wc,iobjy);
+
+const fx12 ttt     = (iobjy - YPIX_TOP ) / YRANGE;  // TODO:
+const fx12 wcc     = -xCam  * ttt;
+
+              obj.draw(ttt,ox_center,wcc,iobjy);
             }
           }
         }    
