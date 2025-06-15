@@ -433,8 +433,8 @@ static bool flg = false;
         const MapData& md_1 = mapData[ idx_1 ];
 
         const fx12 t = distance / md_1.distance;
-        //const fx12 ax_center = (fx12(1)-t) * md_0.ax + t * md_1.ax;
-        const fx12 ax_center = 0;
+        const fx12 ax_center = (fx12(1)-t) * md_0.ax + t * md_1.ax;
+        //const fx12 ax_center = 0;
 
         const fx12 yspan( YSPAN );
         //fx12 width = W_NEAR;
@@ -491,14 +491,10 @@ static bool flg = false;
             if( obj.state == Obj::Disappear ) continue;
             if( obj.isDrawed ) continue;
 
-            const s16 iobjy = z2y(obj.z);
+            const s16 iobjy = z2y( obj.z );
             if( iobjy >= iy && iobjy < iy + YSPAN ){
-              //obj.draw(tt,ox_center,wc,iobjy);
-
-const fx12 ttt     = (iobjy - YPIX_TOP ) / YRANGE;  // TODO:
-const fx12 wcc     = -xCam  * ttt;
-
-              obj.draw(ttt,ox_center,wcc,iobjy);
+              const fx12 t2 = (iobjy - YPIX_TOP ) / YRANGE;  // TODO:
+              obj.draw(t2,ox_center,xCam,iobjy);
             }
           }
         }    
@@ -521,33 +517,25 @@ void  Obj::update(){
   isDrawed = false;
 
   //this->z -= fx12(10,100);
-  this->z -= 5;
-  //this->z -= 1;
+  //this->z -= 5;
+  this->z -= 1;
   if( this->z < -20 ){
     state = Disappear;
   }
 }
 
-void  Obj::draw(fx12 t,fx12 x_center,fx12 wc,fx12 y){
+void  Obj::draw(fx12 t,fx12 x_center,fx12 xCam,fx12 y){
   if( state == Disappear ) return;
   isDrawed = true;
   if( y < YPIX_TOP )    return;
   if( y > YPIX_BOTTOM ) return;
 
   constexpr fx12  WH_CAR = 35;
-  const fx12  W_CAR  = WH_CAR*2; 
+  const fx12  W_CAR = WH_CAR*2; 
 
-  const fx12 xl = x_center + (this->x - WH_CAR) * t;
-
-  const fx12 width = W_CAR * t;
-  const Point ll(
-    wc + xl,
-    y
-  );
-  const Point rr(
-    wc + xl + width,
-    y
-  );
+  const fx12  xl = x_center + (-xCam + this->x - WH_CAR) * t;
+  const Point ll( xl, y);
+  const Point rr( xl + W_CAR * t, y);
 
   line_fx12(ll,rr,RED,X_SCREEN_OFFSET);
 }
