@@ -59,7 +59,9 @@ namespace {
 
   fx12  z2y( fx12 z ){
     //return  YPIX_BOTTOM - z;
-    return  YPIX_BOTTOM - (fx12(100) - fx12(10000) / (z+fx12(100)));
+    constexpr fx12  v100(100);
+    constexpr fx12  v10000(10000);
+    return  YPIX_BOTTOM - ( v100 - v10000/(z+v100) );
   }
 
 } // local namespace
@@ -67,6 +69,10 @@ namespace {
 struct  Point {
   fx12 x;
   fx12 y;
+  Point(fx12 x_,fx12 y_ )
+    : x(x_), y(y_)
+  {}
+  Point(){}
 };
 
 inline  void line_fx12( const Point& p0, const Point& p1, Color color, fx12 sx=0 ){
@@ -74,6 +80,8 @@ inline  void line_fx12( const Point& p0, const Point& p1, Color color, fx12 sx=0
   const fx8 iy0 = to_fx8(p0.y);
   const fx8 ix1 = to_fx8(p1.x + sx);
   const fx8 iy1 = to_fx8(p1.y);
+
+//void  line(const Line& ln, Color color ){
   line(ix0, iy0, ix1, iy1, color);
 } 
 
@@ -228,7 +236,7 @@ class RaceApp : public Pico8 {
       every_50_distance -= fx12(50);
 static bool flg = false;
       if( !flg ){
-        //flg = true;
+        flg = true;
         auto idobj = allocObj();
         if( idobj ){
           Obj& obj = objs[ idobj.value() ];
@@ -352,6 +360,7 @@ PASS();
   }
 
   void _draw() override {
+printf("---\n");
     // Enable or disable the debug string output via dprint().
     dprintenable(false);
     pal( WHITE, RED , 3 );
@@ -412,8 +421,8 @@ PASS();
         const MapData& md_1 = mapData[ idx_1 ];
 
         const fx12 t = distance / md_1.distance;
-        const fx12 ax_center = (fx12(1)-t) * md_0.ax + t * md_1.ax;
-        //const fx12 ax_center = 0;
+        //const fx12 ax_center = (fx12(1)-t) * md_0.ax + t * md_1.ax;
+        const fx12 ax_center = 0;
 
         const fx12 yspan( YSPAN );
         //fx12 width = W_NEAR;
@@ -482,7 +491,8 @@ public: virtual ~RaceApp(){}
 void  Obj::update(){
   if( state == Disappear ) return;
   //this->z -= fx12(10,100);
-  this->z -= 5;
+  //this->z -= 5;
+  this->z -= 1;
   if( this->z < -20 ){
     state = Disappear;
   }
@@ -492,17 +502,18 @@ void  Obj::draw(fx12 t,fx12 x_center,fx12 wc,fx12 y){
   if( state == Disappear ) return;
   if( y < YPIX_TOP )    return;
   if( y > YPIX_BOTTOM ) return;
-
   constexpr fx12 W_CAR = 35;
   const fx12 width  = W_CAR * t;
 
-  Point ll;
-  ll.x = wc + x_center - width; 
-  ll.y = y;
+  Point ll(
+    wc + x_center - width,
+    y
+  );
 
-  Point rr;
-  rr.x = wc + x_center + width; 
-  rr.y = y;
+  Point rr(
+    wc + x_center + width,
+    y
+  );
 
   line_fx12(ll,rr,RED,X_SCREEN_OFFSET);
 }
