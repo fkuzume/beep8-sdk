@@ -57,12 +57,13 @@ namespace {
     return result;
   }
 
-  constexpr fx12  v100(100);
-  constexpr fx12  v10000(10000);
+  // https://www.geogebra.org/graphing?lang=ja
   constexpr size_t NTBL = 400;
   static  s16 tblz2y[ NTBL ];
 
   void  genTableZ2Y(){
+    constexpr fx12  v100(100);
+    constexpr fx12  v10000(10000);
     for( int z=0 ; z<NTBL ; ++z ){
       tblz2y[ z ] = static_cast< s16 >( YPIX_BOTTOM - ( v100 - v10000/(z+v100) ) );
     }
@@ -246,8 +247,8 @@ class RaceApp : public Pico8 {
 
     distance += fx12(1);          // TODO:velocity
     every_50_distance += fx12(1); // TODO:velocity
-    if( every_50_distance > fx12(25) ){
-      every_50_distance -= fx12(25);
+    if( every_50_distance > fx12(50) ){
+      every_50_distance -= fx12(50);
 static bool flg = false;
       if( !flg ){
         //flg = true;
@@ -449,6 +450,10 @@ static bool flg = false;
         Point pcenter;
         Point pleft;
         Point pright;
+        Point center;
+        Point left;
+        Point right;
+
         int nn = 0;
         for( fx12 y=YPIX_BOTTOM ; y>YPIX_TOP ; y -= yspan , ++nn ){
           ox_center = x_center;
@@ -458,19 +463,18 @@ static bool flg = false;
           vx_center += ax_center;
           x_center  += vx_center;
 
-          const fx12 tt     = (y - YPIX_TOP ) / YRANGE;
+          const fx12 tt     = (y - YPIX_TOP ) / YRANGE;  // TODO:
           const fx12 width  = W_NEAR * tt;
-          const fx12 wc     = -xCam * tt;
+          const fx12 wc     = -xCam  * tt;
 
-          Point center;
           center.x = wc + ox_center;
           center.y = y;
 
-          Point left = center;
-          left.x -= width;
+          left.x  = center.x - width;
+          left.y  = center.y;
 
-          Point right = center;
-          right.x += width;
+          right.x = center.x + width;
+          right.y = center.y;
 
           if( nn > 0 ){
             line_fx12(pcenter,center, DARK_GREY, X_SCREEN_OFFSET);
@@ -489,6 +493,7 @@ static bool flg = false;
 
             const s16 iobjy = z2y(obj.z);
             if( iobjy >= iy && iobjy < iy + YSPAN ){
+              //obj.draw(tt,ox_center,wc,iobjy);
               obj.draw(tt,ox_center,wc,iobjy);
             }
           }
@@ -512,8 +517,8 @@ void  Obj::update(){
   isDrawed = false;
 
   //this->z -= fx12(10,100);
-  //this->z -= 5;
-  this->z -= 1;
+  this->z -= 5;
+  //this->z -= 1;
   if( this->z < -20 ){
     state = Disappear;
   }
@@ -524,14 +529,19 @@ void  Obj::draw(fx12 t,fx12 x_center,fx12 wc,fx12 y){
   isDrawed = true;
   if( y < YPIX_TOP )    return;
   if( y > YPIX_BOTTOM ) return;
-  constexpr fx12 W_CAR = 35;
+
+  constexpr fx12  WH_CAR = 35;
+  const fx12  W_CAR  = WH_CAR*2; 
+
+  const fx12 xl = x_center + (this->x - WH_CAR) * t;
+
   const fx12 width = W_CAR * t;
   const Point ll(
-    wc + x_center - width,
+    wc + xl,
     y
   );
   const Point rr(
-    wc + x_center + width,
+    wc + xl + width,
     y
   );
 
