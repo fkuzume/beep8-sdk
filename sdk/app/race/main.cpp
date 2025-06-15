@@ -57,11 +57,22 @@ namespace {
     return result;
   }
 
+  constexpr fx12  v100(100);
+  constexpr fx12  v10000(10000);
+  constexpr size_t NTBL = 400;
+  static  int tblz2y[ NTBL ];
+
+  void  genTableZ2Y(){
+    for( int z=0 ; z<NTBL ; ++z ){
+      tblz2y[ z ] = YPIX_BOTTOM - ( v100 - v10000/(z+v100) );
+    }
+  }
+
   fx12  z2y( fx12 z ){
-    //return  YPIX_BOTTOM - z;
-    constexpr fx12  v100(100);
-    constexpr fx12  v10000(10000);
-    return  YPIX_BOTTOM - ( v100 - v10000/(z+v100) );
+    int iz = static_cast< int >( z );
+    if( iz < 0 )      iz = 0;
+    if( iz > NTBL-1 ) iz = NTBL-1;
+    return tblz2y[ iz ];
   }
 
 } // local namespace
@@ -212,6 +223,7 @@ class RaceApp : public Pico8 {
   }
 
   void _init() override {
+    genTableZ2Y();
     extern  const uint8_t  b8_image_sprite0[];
     hi_score = 53;
     lsp(0, b8_image_sprite0);
