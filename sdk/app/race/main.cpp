@@ -78,6 +78,7 @@ namespace {
 
 } // local namespace
 
+
 struct  Point {
   fx12 x;
   fx12 y;
@@ -143,10 +144,13 @@ class RaceApp : public Pico8 {
   int cnt_playing = 0;
   int cnt_clear = 0;
 
+public:
   fx12    xCar;
   fx12    vzCar;
+private:
   fx12    xCam;
   fx12    distance;
+  fx12    acc_distance;
   fx12    every_50_distance;
   u16     upMapData;
   MapData mapData[ N_FIFO_MAPDATA ];
@@ -165,20 +169,19 @@ class RaceApp : public Pico8 {
     return std::nullopt;
   }
 
-
   // playing 
   void  enterPlaying(){
     print("\e[2J");
     objs = std::vector< Obj >( NOBJ );
 
     xCam = xCar = vzCar = 0;
-    distance = 0;
+    acc_distance = distance = 0;
     every_50_distance = 0;
 
     upMapData = 1;
     for( u16 nn=0 ; nn < N_FIFO_MAPDATA ; ++nn ){
       MapData& md = mapData[ nn ];
-      md.distance = rndf12( 30,100);
+      md.distance = rndf12( 100,300);
       if( nn <= 2 ){
         md.ax = 0;
       } else {
@@ -246,18 +249,20 @@ class RaceApp : public Pico8 {
       xCar += 8;;
     }
 
-    if( btn( BUTTON_O ) || btn( BUTTON_X ) ){
-      vzCar += fx12(10,100);
+    if( btn( BUTTON_O ) ){
+      vzCar -= fx12(200,4096);
+    } else if ( btn( BUTTON_X ) ){
+      vzCar += fx12(50,4096);
     } else {
-      vzCar += fx12(3,100);
+      vzCar -= fx12(7,4096);
     }
-    vzCar = std::clamp(vzCar, fx12(0), fx12(1));
-
+    vzCar = std::clamp(vzCar, fx12(0), fx12(6));
+WATCH( vzCar.raw_value() );
     #if 0
     distance += fx12(1);          // TODO:velocity
     #else
     distance += vzCar;
-    WATCH(distance );
+    acc_distance += vzCar;
     #endif
     every_50_distance += fx12(1); // TODO:velocity
     if( every_50_distance > fx12(50) ){
@@ -269,8 +274,8 @@ static bool flg = false;
         if( idobj ){
           Obj& obj = objs[ idobj.value() ];
           obj.x = -40;
-          obj.z = 400;
-          obj.vz =0;
+          obj.z = +300;
+          obj.vz = fx12(3000,4096);
         }
       }
     }
@@ -524,6 +529,8 @@ static bool flg = false;
 public: virtual ~RaceApp(){}
 };
 
+static  RaceApp  app;
+
 void  Obj::update(){
   if( state == Disappear ) return;
 
@@ -531,9 +538,11 @@ void  Obj::update(){
 
   //this->z -= fx12(10,100);
   //this->z -= 5;
-  this->z -= 1;
+  const fx12 lvz = this->vz - app.vzCar;
+//WATCH( lvz.raw_value() );
+  this->z += lvz;
 
-  if( this->z < -20 ){
+  if( this->z < -20 || this->z > 400+20 ){
     state = Disappear;
   }
 }
@@ -555,7 +564,6 @@ void  Obj::draw(fx12 t,fx12 x_center,fx12 xCam,fx12 y){
 }
 
 int main() {
-  static  RaceApp  app;
   app.run();
   return 0;
 }
