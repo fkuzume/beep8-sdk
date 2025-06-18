@@ -15,11 +15,16 @@ namespace {
   constexpr fx12 YPIX_TOP    = 70;
   constexpr fx12 YPIX_BOTTOM = 150;
   //constexpr fx12 YLEN = YPIX_BOTTOM - YPIX_TOP;
-  constexpr fx12 W_NEAR = 150;
+  //constexpr fx12 W_NEAR = 150;
+  constexpr fx12 W_NEAR = 200;
+
+  constexpr fx12 EVERY_50   = 50;
+  constexpr fx12 EVERY_100  = 100;
 
   constexpr u16 N_FIFO_MAPDATA = 32;  // must be 2^n
 
   constexpr fx12 X_SCREEN_OFFSET = 64;
+  constexpr fx12 MAX_VZ = fx12(8);
 
   static  Xorshift32 xors;
 
@@ -102,7 +107,6 @@ inline  void line_fx12( const Point& p0, const Point& p1, Color color, fx12 sx=0
 
 enum class  GameState { Nil, Title, Playing, Clear };
 
-
 struct  MapData {
   fx12 distance;
   fx12 ax;       // fx12(±21,100)
@@ -152,6 +156,7 @@ private:
   fx12    distance;
   fx12    acc_distance;
   fx12    every_50_distance;
+  fx12    every_100_distance;
   u16     upMapData;
   MapData mapData[ N_FIFO_MAPDATA ];
   vector< Obj > objs = std::vector< Obj >( NOBJ );
@@ -177,15 +182,16 @@ private:
     xCam = xCar = vzCar = 0;
     acc_distance = distance = 0;
     every_50_distance = 0;
+    every_100_distance = 0;
 
     upMapData = 1;
     for( u16 nn=0 ; nn < N_FIFO_MAPDATA ; ++nn ){
       MapData& md = mapData[ nn ];
-      md.distance = rndf12( 100,300);
+      md.distance = rndf12(130,500);
       if( nn <= 2 ){
         md.ax = 0;
       } else {
-        md.ax = rndf12( fx12(-21,100), fx12(+21,100) );
+        md.ax = rndf12( fx12(-19,100), fx12(+19,100) );
       }
     }
 
@@ -252,31 +258,32 @@ private:
     if( btn( BUTTON_O ) ){
       vzCar -= fx12(200,4096);
     } else if ( btn( BUTTON_X ) ){
-      vzCar += fx12(50,4096);
+      vzCar += fx12(130,4096);
     } else {
-      vzCar -= fx12(7,4096);
+      vzCar -= fx12(23,4096);
     }
-    vzCar = std::clamp(vzCar, fx12(0), fx12(6));
-WATCH( vzCar.raw_value() );
-    #if 0
-    distance += fx12(1);          // TODO:velocity
-    #else
-    distance += vzCar;
-    acc_distance += vzCar;
-    #endif
-    every_50_distance += fx12(1); // TODO:velocity
-    if( every_50_distance > fx12(50) ){
-      every_50_distance -= fx12(50);
-static bool flg = false;
-      if( !flg ){
-        //flg = true;
-        auto idobj = allocObj();
-        if( idobj ){
-          Obj& obj = objs[ idobj.value() ];
-          obj.x = -40;
-          obj.z = +300;
-          obj.vz = fx12(3000,4096);
-        }
+    vzCar = std::clamp(vzCar, fx12(0), MAX_VZ );
+
+    distance           += vzCar;
+    acc_distance       += vzCar;
+    every_50_distance  += vzCar;
+    every_100_distance += vzCar;
+
+    if( every_50_distance > EVERY_50 ){
+      every_50_distance -= EVERY_50;
+
+    }
+
+    if( every_100_distance > EVERY_100 ){
+      every_100_distance -= EVERY_100;
+
+      auto idobj = allocObj();
+      if( idobj ){
+        Obj& obj = objs[ idobj.value() ];
+        obj.x = -40;
+        obj.z = +300;
+        //obj.vz = fx12(3000,4096);
+        obj.vz = 0;
       }
     }
 
@@ -525,6 +532,10 @@ static bool flg = false;
 
     camera();
     setz(maxz());
+
+    cursor(2,2);
+    print( "%d km/h   ",vzCar.raw_value()>>7);
+
   }
 public: virtual ~RaceApp(){}
 };
