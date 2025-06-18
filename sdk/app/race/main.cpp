@@ -5,17 +5,13 @@ using namespace pico8;
 namespace {
   constexpr BgTiles XTILES = TILES_32;
   constexpr BgTiles YTILES = TILES_32;
-  constexpr int DARK_SCORE = 900; 
   constexpr int CLEAR_SCORE = 1000; 
-  constexpr u16 PRIV_KEY = 0x7219; 
-  constexpr u16 ZFIFO = 512;
+  constexpr u16 PRIV_KEY = 0x9217; 
   constexpr size_t NOBJ = 16;
   constexpr int YSPAN = 4;
 
   constexpr fx12 YPIX_TOP    = 70;
   constexpr fx12 YPIX_BOTTOM = 150;
-  //constexpr fx12 YLEN = YPIX_BOTTOM - YPIX_TOP;
-  //constexpr fx12 W_NEAR = 150;
   constexpr fx12 W_NEAR = 200;
 
   constexpr fx12 EVERY_50   = 50;
@@ -23,6 +19,7 @@ namespace {
 
   constexpr u16 N_FIFO_MAPDATA = 32;  // must be 2^n
 
+  constexpr fx12 HW_CAR = 20; 
   constexpr fx12 X_SCREEN_OFFSET = 64;
   constexpr fx12 MAX_VZ = fx12(8);
 
@@ -128,7 +125,9 @@ struct  Obj {
   fx12 x = 0;
   fx12 z = 0;
   fx12 vz = 0;
+  fx12 hw = 35;  // half width
   bool isDrawed = false;
+  bool  chkIfCollide();
   void  update();
   void  draw(fx12 t,fx12 x_center,fx12 wc,fx12 y);
 };
@@ -271,7 +270,6 @@ private:
 
     if( every_50_distance > EVERY_50 ){
       every_50_distance -= EVERY_50;
-
     }
 
     if( every_100_distance > EVERY_100 ){
@@ -304,7 +302,6 @@ private:
     print("\e[3q\e[13;4H HI:%d\e[0q" , hi_score );
     print("\e[15;4H SC:%d", score );
   }
-
 
   void  enterClear(){
     cnt_clear = 0;
@@ -384,13 +381,11 @@ private:
   }
 
   void  drawMyCar(){
-//void rectfill(fx8 x0, fx8 y0, fx8 x1, fx8 y1, Color color) {
-    const fx12 wCar = 20; 
     rectfill_fx12(
-      xCar - wCar - xCam,
+      xCar - HW_CAR - xCam,
       YPIX_BOTTOM - 12, 
 
-      xCar + wCar - xCam,
+      xCar + HW_CAR - xCam,
       YPIX_BOTTOM - 4,
 
       LIGHT_PEACH,
@@ -462,7 +457,6 @@ private:
         //const fx12 ax_center = 0;
 
         const fx12 yspan( YSPAN );
-        //fx12 width = W_NEAR;
         fx12 ox_center;
 
         const fx12 YRANGE = YPIX_BOTTOM - YPIX_TOP;
@@ -535,22 +529,25 @@ private:
 
     cursor(2,2);
     print( "%d km/h   ",vzCar.raw_value()>>7);
-
   }
 public: virtual ~RaceApp(){}
 };
 
 static  RaceApp  app;
 
+bool  Obj::chkIfCollide(){
+  if( this->z > 15 )  return  false;
+  if( this->z < 0  )  return  false;
+  if( this->x + this->hw < app.xCar - HW_CAR )  return  false;
+  if( this->x - this->hw > app.xCar + HW_CAR )  return  false;
+  return  true;
+}
+
 void  Obj::update(){
   if( state == Disappear ) return;
-
   isDrawed = false;
 
-  //this->z -= fx12(10,100);
-  //this->z -= 5;
   const fx12 lvz = this->vz - app.vzCar;
-//WATCH( lvz.raw_value() );
   this->z += lvz;
 
   if( this->z < -20 || this->z > 400+20 ){
@@ -564,14 +561,16 @@ void  Obj::draw(fx12 t,fx12 x_center,fx12 xCam,fx12 y){
   if( y < YPIX_TOP )    return;
   if( y > YPIX_BOTTOM ) return;
 
-  constexpr fx12  WH_CAR = 35;
-  const fx12  W_CAR = WH_CAR*2; 
-
-  const fx12  xl = x_center + (-xCam + this->x - WH_CAR) * t;
+  const fx12  width = this->hw * 2; 
+  const fx12  xl = x_center + (-xCam + this->x - this->hw) * t;
   const Point ll( xl, y);
-  const Point rr( xl + W_CAR * t, y);
+  const Point rr( xl + width * t, y);
 
-  line_fx12(ll,rr,RED,X_SCREEN_OFFSET);
+  Color color = RED;
+  if( chkIfCollide() )  color = GREEN;
+
+  if( this->z < 0 ) return;
+  line_fx12(ll,rr,color,X_SCREEN_OFFSET);
 }
 
 int main() {
