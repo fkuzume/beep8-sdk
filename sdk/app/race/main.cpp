@@ -11,6 +11,10 @@ namespace {
   constexpr size_t NOBJ = 16;
   constexpr int YSPAN = 4;
 
+  constexpr int SPR_MYCACR_TAIL         = 48;
+  constexpr int SPR_MYCACR_FRONT_WHEEL  = 32;
+  constexpr int SPR_MYCACR_REAR_WHEEL   = 16;
+
   constexpr fx12 YPIX_TOP    = 70;
   constexpr fx12 YPIX_BOTTOM = 150;
   constexpr fx12 W_NEAR = 200;
@@ -27,7 +31,7 @@ namespace {
   static  Xorshift32 xors;
 
   static  constexpr auto  flushAnimUsual  = to_array<pico8::Color>({BLACK});
-  static  constexpr auto  flushAnimBurnt   = to_array<pico8::Color>({RED,BLACK,ORANGE,RED,BLACK,RED,BLACK,ORANGE,ORANGE,ORANGE,DARK_BLUE,ORANGE,RED,ORANGE,ORANGE,RED});
+  static  constexpr auto  flushAnimBurnt   = to_array<pico8::Color>({RED,BLACK,ORANGE,RED,BLACK,RED,BLACK,ORANGE,ORANGE,ORANGE,DARK_BLUE,ORANGE,RED,ORANGE,ORANGE,RED,BLACK});
 
   inline fx8 to_fx8(fx12 v){ return static_cast<fx8>(v); }
 
@@ -138,7 +142,6 @@ struct  Obj {
 
 class RaceApp : public Pico8 {
   int frame = 0;
-  TableStepper< pico8::Color > flushBg;
   GameState  reqReset = GameState::Nil;
   GameState  status   = GameState::Nil;
   Vec cam;
@@ -148,13 +151,13 @@ class RaceApp : public Pico8 {
   int hi_score = 0;
   int score = 0;
   int disp_score = 0;
-  int cnt_crash = 0;
   int cnt_title = 0;
   int cnt_playing = 0;
 public:
+  int cnt_crash = 0;
   int cnt_clear = 0;
 
-public:
+  TableStepper< pico8::Color > flushBg;
   fx12    xCar;
   fx12    vzCar;
 private:
@@ -258,24 +261,30 @@ private:
       reqReset = GameState::Title;
     }
 
-    if( cnt_clear > 0 ){
-      cnt_clear++;
-      WATCH( cnt_clear );
+    if( cnt_crash > 0 ){
+      cnt_crash++;
+      WATCH( cnt_crash );
     }
 
-    if( btn( BUTTON_LEFT ) ){
-      xCar -= 8;
-    } else if( btn( BUTTON_RIGHT ) ){
-      xCar += 8;;
-    }
+    if( cnt_crash == 0 ){
+      if( btn( BUTTON_LEFT ) ){
+        xCar -= 8;
+      } else if( btn( BUTTON_RIGHT ) ){
+        xCar += 8;;
+      }
 
-    if( btn( BUTTON_O ) ){
-      vzCar -= fx12(200,4096);
-    } else if ( btn( BUTTON_X ) ){
-      vzCar += fx12(130,4096);
+      if( btn( BUTTON_O ) ){
+        vzCar -= fx12(200,4096);
+      } else if ( btn( BUTTON_X ) ){
+        vzCar += fx12(130,4096);
+      } else {
+        vzCar -= fx12(23,4096);
+      }
     } else {
-      vzCar -= fx12(23,4096);
+      vzCar *= fx12(3937,4096);
     }
+
+
     vzCar = std::clamp(vzCar, fx12(0), MAX_VZ );
 
     distance           += vzCar;
@@ -321,6 +330,7 @@ private:
 
   void  enterClear(){
     cnt_clear = 0;
+    cnt_crash = 0;
 
     char pass_str[5];
     snprintf(pass_str, sizeof(pass_str), "%04X", PRIV_KEY); // 例: "A3F9"
@@ -397,16 +407,57 @@ private:
   }
 
   void  drawMyCar(){
-    rectfill_fx12(
-      xCar - HW_CAR - xCam,
-      YPIX_BOTTOM - 12, 
+    if( cnt_crash == 0 ){
+      #if 0
+      rectfill_fx12(
+        xCar - HW_CAR - xCam,
+        YPIX_BOTTOM - 12, 
 
-      xCar + HW_CAR - xCam,
-      YPIX_BOTTOM - 4,
+        xCar + HW_CAR - xCam,
+        YPIX_BOTTOM - 4,
 
-      LIGHT_PEACH,
-      X_SCREEN_OFFSET
-    );
+        LIGHT_PEACH,
+        X_SCREEN_OFFSET
+      );
+      #endif
+
+
+      auto xx = to_fx8( xCar - xCam + 64 - 16 );
+      auto yy = to_fx8(YPIX_BOTTOM - 12);
+
+      setz(1);
+
+      spr(
+        SPR_MYCACR_FRONT_WHEEL,
+        xx+2,yy-4
+      );
+      spr(
+        SPR_MYCACR_FRONT_WHEEL,
+        xx+24-2,yy-4
+      );
+
+      spr(
+        SPR_MYCACR_TAIL,
+        xx,yy,
+        2,1
+      );
+      spr(
+        SPR_MYCACR_TAIL,
+        xx+16,yy,
+        2,1,
+        true
+      );
+
+      spr(
+        SPR_MYCACR_REAR_WHEEL,
+        xx,yy+3
+      );
+      spr(
+        SPR_MYCACR_REAR_WHEEL,
+        xx+24,yy+3
+      );
+    } else {
+    }
   }
 
   void _draw() override {
@@ -414,6 +465,7 @@ private:
     dprintenable(false);
     pal( WHITE, RED , 3 );
     camera();
+
     cls( flushBg.step() );
 
     req_red = false;
@@ -559,7 +611,10 @@ void  Obj::update(){
   this->z += lvz;
 
   if( chkIfCollide() ){
-    if( 0 == app.cnt_clear )  app.cnt_clear = 1;
+    if( 0 == app.cnt_crash ){
+      app.flushBg.setTable( flushAnimBurnt );
+      app.cnt_crash = 1;
+    }
   }
 
   if( this->z < -20 || this->z > 400+20 ){
