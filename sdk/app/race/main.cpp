@@ -154,7 +154,6 @@ class RaceApp : public Pico8 {
   int score = 0;
   int disp_score = 0;
   int cnt_title = 0;
-  int cnt_playing = 0;
 public:
   int cnt_crash = 0;
   int cnt_clear = 0;
@@ -210,7 +209,6 @@ private:
       }
     }
 
-    cnt_playing = 0;
     dead = false;
     score  = 0;
     cnt_crash = 0;
@@ -268,7 +266,7 @@ private:
       } else if ( btn( BUTTON_X ) ){
         vzCar += fx12(130,4096);
       } else {
-        vzCar -= fx12(23,4096);
+        vzCar -= fx12(50,4096);
       }
     } else {
       vzCar *= fx12(3937,4096);
@@ -308,6 +306,95 @@ private:
     for( auto& obj : objs ){
       obj.update();
     }
+  }
+
+  void drawPlaying(){
+    if( score != disp_score ){
+      disp_score = score; 
+      print("\e[21;1H%d",disp_score);
+    }
+
+    setz(maxz());
+    line_fx12(0,YPIX_BOTTOM,128,YPIX_BOTTOM,WHITE);
+    xCam = xCar;
+
+    fx12 x_center = 0;
+    fx12 vx_center = 0;
+
+    const u16 idx_0 = (upMapData - 1)  & (N_FIFO_MAPDATA - 1);
+    const MapData& md_0 = mapData[ idx_0 ];
+
+    const u16 idx_1 = upMapData & (N_FIFO_MAPDATA - 1);
+    const MapData& md_1 = mapData[ idx_1 ];
+
+    const fx12 t = distance / md_1.distance;
+    const fx12 ax_center = (fx12(1)-t) * md_0.ax + t * md_1.ax;
+
+    const fx12 yspan( YSPAN );
+    fx12 ox_center;
+
+    const fx12 YRANGE = YPIX_BOTTOM - YPIX_TOP;
+
+    for( auto& obj : objs ){
+      if( obj.state == Obj::Disappear ) continue;
+      obj.isDrawed = false; 
+    }
+
+    Point pcenter;
+    Point pleft;
+    Point pright;
+    Point center;
+    Point left;
+    Point right;
+
+    int nn = 0;
+    for( fx12 y=YPIX_BOTTOM ; y>YPIX_TOP ; y -= yspan , ++nn ){
+      ox_center = x_center;
+
+      vx_center += ax_center;
+      x_center  += vx_center;
+      vx_center += ax_center;
+      x_center  += vx_center;
+
+      const fx12 tt     = (y - YPIX_TOP ) / YRANGE;  // TODO:
+      const fx12 width  = W_NEAR * tt;
+      const fx12 wc     = -xCam  * tt;
+
+      center.x = wc + ox_center;
+      center.y = y;
+
+      left.x  = center.x - width;
+      left.y  = center.y;
+
+      right.x = center.x + width;
+      right.y = center.y;
+
+      if( nn > 0 ){
+        line_fx12(pcenter,center, DARK_GREY, X_SCREEN_OFFSET);
+        line_fx12(pleft,  left,   DARK_GREY, X_SCREEN_OFFSET);
+        line_fx12(pright, right,  DARK_GREY, X_SCREEN_OFFSET);
+      }
+
+      pcenter = center;
+      pleft   = left;
+      pright  = right;
+
+      const s16 iy = static_cast< s16 >( y );
+      for( auto& obj : objs ){
+        if( obj.state == Obj::Disappear ) continue;
+        if( obj.isDrawed ) continue;
+
+        const s16 iobjy = z2y( obj.z );
+        if( iobjy >= iy && iobjy < iy + YSPAN ){
+          const fx12 t2 = (iobjy - YPIX_TOP ) / YRANGE;  // TODO:
+          obj.draw(t2,ox_center,xCam,iobjy);
+        }
+      }
+    }    
+
+    // mycar
+    setz(3);
+    drawMyCar();
   }
 
   void  enterTitle(){
@@ -483,107 +570,16 @@ private:
     switch( status ){
       case  GameState::Clear:{
         camera();
-        setz(1);
       }break;
       case  GameState::Nil:
       case  GameState::Title:{
         camera();
-        setz(1);
       }break;
       case  GameState::Playing:{
-        ++cnt_playing;
-
-        if( score != disp_score ){
-          disp_score = score; 
-          print("\e[21;1H%d",disp_score);
-        }
-
-        setz(maxz());
-        line_fx12(0,YPIX_BOTTOM,128,YPIX_BOTTOM,WHITE);
-        xCam = xCar;
-
-        fx12 x_center = 0;
-        fx12 vx_center = 0;
-        //fx12 ax_center = fx12(21,100) * pico8::sin( fx12(cnt_playing,100) );
-
-        const u16 idx_0 = (upMapData - 1)  & (N_FIFO_MAPDATA - 1);
-        const MapData& md_0 = mapData[ idx_0 ];
-
-        const u16 idx_1 = upMapData & (N_FIFO_MAPDATA - 1);
-        const MapData& md_1 = mapData[ idx_1 ];
-
-        const fx12 t = distance / md_1.distance;
-        const fx12 ax_center = (fx12(1)-t) * md_0.ax + t * md_1.ax;
-        //const fx12 ax_center = 0;
-
-        const fx12 yspan( YSPAN );
-        fx12 ox_center;
-
-        const fx12 YRANGE = YPIX_BOTTOM - YPIX_TOP;
-
-        for( auto& obj : objs ){
-          if( obj.state == Obj::Disappear ) continue;
-          obj.isDrawed = false; 
-        }
-
-        Point pcenter;
-        Point pleft;
-        Point pright;
-        Point center;
-        Point left;
-        Point right;
-
-        int nn = 0;
-        for( fx12 y=YPIX_BOTTOM ; y>YPIX_TOP ; y -= yspan , ++nn ){
-          ox_center = x_center;
-
-          vx_center += ax_center;
-          x_center  += vx_center;
-          vx_center += ax_center;
-          x_center  += vx_center;
-
-          const fx12 tt     = (y - YPIX_TOP ) / YRANGE;  // TODO:
-          const fx12 width  = W_NEAR * tt;
-          const fx12 wc     = -xCam  * tt;
-
-          center.x = wc + ox_center;
-          center.y = y;
-
-          left.x  = center.x - width;
-          left.y  = center.y;
-
-          right.x = center.x + width;
-          right.y = center.y;
-
-          if( nn > 0 ){
-            line_fx12(pcenter,center, DARK_GREY, X_SCREEN_OFFSET);
-            line_fx12(pleft,  left,   DARK_GREY, X_SCREEN_OFFSET);
-            line_fx12(pright, right,  DARK_GREY, X_SCREEN_OFFSET);
-          }
-
-          pcenter = center;
-          pleft   = left;
-          pright  = right;
-
-          const s16 iy = static_cast< s16 >( y );
-          for( auto& obj : objs ){
-            if( obj.state == Obj::Disappear ) continue;
-            if( obj.isDrawed ) continue;
-
-            const s16 iobjy = z2y( obj.z );
-            if( iobjy >= iy && iobjy < iy + YSPAN ){
-              const fx12 t2 = (iobjy - YPIX_TOP ) / YRANGE;  // TODO:
-              obj.draw(t2,ox_center,xCam,iobjy);
-            }
-          }
-        }    
-
-        // mycar
-        setz(3);
-        drawMyCar();
+        drawPlaying();
       }break;
     }
-
+    setz(1);
     camera();
     setz(maxz());
 
