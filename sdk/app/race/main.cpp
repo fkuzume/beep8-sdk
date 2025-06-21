@@ -143,8 +143,10 @@ class RaceApp : public Pico8 {
   int hi_score = 0;
   int score = 0;
   int disp_score = 0;
+  int cnt_crash = 0;
   int cnt_title = 0;
   int cnt_playing = 0;
+public:
   int cnt_clear = 0;
 
 public:
@@ -197,6 +199,7 @@ private:
     cnt_playing = 0;
     dead = false;
     score  = 0;
+    cnt_crash = 0;
     disp_score = -1;
     b8PpuBgTile tile = {};
     mcls(tile);
@@ -246,6 +249,11 @@ private:
       reqReset = GameState::Clear;
     } else if( dead ){
       reqReset = GameState::Title;
+    }
+
+    if( cnt_clear > 0 ){
+      cnt_clear++;
+      WATCH( cnt_clear );
     }
 
     if( btn( BUTTON_LEFT ) ){
@@ -550,6 +558,10 @@ void  Obj::update(){
   const fx12 lvz = this->vz - app.vzCar;
   this->z += lvz;
 
+  if( chkIfCollide() ){
+    if( 0 == app.cnt_clear )  app.cnt_clear = 1;
+  }
+
   if( this->z < -20 || this->z > 400+20 ){
     state = Disappear;
   }
@@ -567,7 +579,7 @@ void  Obj::draw(fx12 t,fx12 x_center,fx12 xCam,fx12 y){
   const Point rr( xl + width * t, y);
 
   Color color = RED;
-  if( chkIfCollide() )  color = GREEN;
+  //if( chkIfCollide() )  color = GREEN;
 
   if( this->z < 0 ) return;
   line_fx12(ll,rr,color,X_SCREEN_OFFSET);
