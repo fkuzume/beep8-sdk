@@ -19,6 +19,8 @@ namespace {
   constexpr fx12 YPIX_BOTTOM = 150;
   constexpr fx12 W_NEAR = 200;
 
+  constexpr fx12 VZ_ENABLE_WHEEL = fx12(1);
+
   constexpr fx12 EVERY_50   = 50;
   constexpr fx12 EVERY_100  = 100;
 
@@ -159,6 +161,7 @@ public:
 
   TableStepper< pico8::Color > flushBg;
   fx12    xCar;
+  int     xWheel;
   fx12    vzCar;
 private:
   fx12    xCam;
@@ -191,6 +194,7 @@ private:
     flushBg.setTable( flushAnimUsual );
 
     xCam = xCar = vzCar = 0;
+    xWheel = 0;
     acc_distance = distance = 0;
     every_50_distance = 0;
     every_100_distance = 0;
@@ -215,36 +219,6 @@ private:
     mcls(tile);
   }
 
-  int calculatePipeSpan() {
-    if (score <= 10) {
-      return 8;
-    } else if (score <= 20) {
-      static constexpr int values[] = {8, 7, 7, 7, 6};
-      return rndt(values);
-    } else if (score <= 50) {
-      static constexpr int values[] = {7, 6, 7, 7, 7};
-      return rndt(values);
-    } else if (score <= 75) {
-      static constexpr int values[] = {8, 7, 6, 6, 7, 6, 6};
-      return rndt(values);
-    } else if (score <= 100) {
-      static constexpr int values[] = {7, 7, 6, 6, 6, 6, 6};
-      return rndt(values);
-    } else if (score <= 110) {
-      static constexpr int values[] = {9, 8, 8, 7};
-      return rndt(values);
-    } else if (score <= 140) {
-      static constexpr int values[] = {7, 6, 6, 6, 6};
-      return rndt(values);
-    } else if (score <= 180) {
-      static constexpr int values[] = {6, 6, 6, 6, 5};
-      return rndt(values);
-    } else {
-      static constexpr int values[] = {6, 6, 5, 5, 5};
-      return rndt(values);
-    }
-  }
-
   void _init() override {
     genTableZ2Y();
     extern  const uint8_t  b8_image_sprite0[];
@@ -267,10 +241,26 @@ private:
     }
 
     if( cnt_crash == 0 ){
+      fx12 vxCar =0;
       if( btn( BUTTON_LEFT ) ){
-        xCar -= 8;
+        vxCar = -8;
+        --xWheel;
       } else if( btn( BUTTON_RIGHT ) ){
-        xCar += 8;;
+        vxCar = +8;
+        ++xWheel;
+      } else {
+        if( xWheel < 0 ){
+          ++xWheel;
+        } else if ( xWheel > 0 ){
+          --xWheel;
+        }
+      }
+      xWheel = std::clamp(xWheel,-6,+6);
+
+      if( vzCar > VZ_ENABLE_WHEEL ){
+        xCar += vxCar;
+      } else {
+        xWheel = 0;
       }
 
       if( btn( BUTTON_O ) ){
@@ -427,34 +417,44 @@ private:
 
       setz(1);
 
+      const int lxWheel  = xWheel>>1;
+      const int lxWheel2 = xWheel>>2;
+      const u32 uacc_distance = static_cast< u32 >( acc_distance );
+      const u32 anm   = (uacc_distance>>4) & 1;
+      const u32 yoff  = (uacc_distance>>5) & 1;
+      u32 yoff_bd  = 0;
+      if( ((uacc_distance+77) & 0xff) == 0 ){
+        ++yoff_bd;
+      }
+
       spr(
-        SPR_MYCACR_FRONT_WHEEL,
-        xx+2,yy-4
+        SPR_MYCACR_FRONT_WHEEL+anm,
+        xx+2+lxWheel,yy-4
       );
       spr(
-        SPR_MYCACR_FRONT_WHEEL,
-        xx+24-2,yy-4
+        SPR_MYCACR_FRONT_WHEEL+anm,
+        xx+24-2+lxWheel,yy-4
       );
 
       spr(
         SPR_MYCACR_TAIL,
-        xx,yy,
+        xx,yy+yoff_bd,
         2,1
       );
       spr(
         SPR_MYCACR_TAIL,
-        xx+16,yy,
+        xx+16,yy+yoff_bd,
         2,1,
         true
       );
 
       spr(
-        SPR_MYCACR_REAR_WHEEL,
-        xx,yy+3
+        SPR_MYCACR_REAR_WHEEL+anm,
+        xx-lxWheel2,yy+3-yoff
       );
       spr(
-        SPR_MYCACR_REAR_WHEEL,
-        xx+24,yy+3
+        SPR_MYCACR_REAR_WHEEL+anm,
+        xx+24-lxWheel2,yy+3-yoff
       );
     } else {
     }
