@@ -1,4 +1,5 @@
 #include <pico8.h>
+#include "tbl_stepper.h"
 
 using namespace std;  
 using namespace pico8;  
