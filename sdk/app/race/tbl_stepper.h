@@ -1,6 +1,7 @@
 #pragma once
 #include <span>
 #include <submath.h>
+#include <sublibc.h>
 
 template <typename T>
 class TableStepper {

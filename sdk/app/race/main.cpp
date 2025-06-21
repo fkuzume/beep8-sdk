@@ -26,6 +26,9 @@ namespace {
 
   static  Xorshift32 xors;
 
+  static  constexpr auto  flushAnimUsual  = to_array<pico8::Color>({BLACK});
+  static  constexpr auto  flushAnimBurnt   = to_array<pico8::Color>({RED,BLACK,ORANGE,RED,BLACK,RED,BLACK,ORANGE,ORANGE,ORANGE,DARK_BLUE,ORANGE,RED,ORANGE,ORANGE,RED});
+
   inline fx8 to_fx8(fx12 v){ return static_cast<fx8>(v); }
 
   inline  void line_fx12(fx12 x0, fx12 y0, fx12 x1, fx12 y1, Color color,fx12 sx=0) {
@@ -135,6 +138,7 @@ struct  Obj {
 
 class RaceApp : public Pico8 {
   int frame = 0;
+  TableStepper< pico8::Color > flushBg;
   GameState  reqReset = GameState::Nil;
   GameState  status   = GameState::Nil;
   Vec cam;
@@ -180,6 +184,8 @@ private:
   void  enterPlaying(){
     print("\e[2J");
     objs = std::vector< Obj >( NOBJ );
+
+    flushBg.setTable( flushAnimUsual );
 
     xCam = xCar = vzCar = 0;
     acc_distance = distance = 0;
@@ -310,6 +316,7 @@ private:
     print("\e[3;7H    ");
     print("\e[3q\e[13;4H HI:%d\e[0q" , hi_score );
     print("\e[15;4H SC:%d", score );
+    flushBg.setTable( flushAnimUsual );
   }
 
   void  enterClear(){
@@ -407,16 +414,8 @@ private:
     dprintenable(false);
     pal( WHITE, RED , 3 );
     camera();
+    cls( flushBg.step() );
 
-    if( status != GameState::Clear ){
-      cls( BLACK );
-    } else {
-      if( cnt_clear < 50 ){ 
-        cls( static_cast< Color >( (cnt_clear>>2) & 15 ) );
-      } else {
-        cls( PINK );
-      }
-    }
     req_red = false;
 
     setz(maxz()-1);
