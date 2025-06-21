@@ -10,6 +10,7 @@ namespace {
   constexpr u16 PRIV_KEY = 0x9217; 
   constexpr size_t NOBJ = 16;
   constexpr int YSPAN = 4;
+  constexpr int NMAX_CENTER = 240 / YSPAN;
 
   constexpr int SPR_MYCACR_TAIL         = 48;
   constexpr int SPR_MYCACR_FRONT_WHEEL  = 32;
@@ -33,7 +34,7 @@ namespace {
   static  Xorshift32 xors;
 
   static  constexpr auto  flushAnimUsual  = to_array<pico8::Color>({BLACK});
-  static  constexpr auto  flushAnimBurnt   = to_array<pico8::Color>({RED,BLACK,ORANGE,RED,BLACK,RED,BLACK,ORANGE,ORANGE,ORANGE,DARK_BLUE,ORANGE,RED,ORANGE,ORANGE,RED,BLACK});
+  static  constexpr auto  flushAnimBurnt  = to_array<pico8::Color>({RED,BLACK,ORANGE,RED,BLACK,RED,BLACK,ORANGE,ORANGE,ORANGE,DARK_BLUE,ORANGE,RED,ORANGE,ORANGE,RED,BLACK});
 
   inline fx8 to_fx8(fx12 v){ return static_cast<fx8>(v); }
 
@@ -154,6 +155,7 @@ class RaceApp : public Pico8 {
   int score = 0;
   int disp_score = 0;
   int cnt_title = 0;
+  fx12 ax_center;
 public:
   int cnt_crash = 0;
   int cnt_clear = 0;
@@ -192,6 +194,7 @@ private:
 
     flushBg.setTable( flushAnimUsual );
 
+    ax_center = 0;
     xCam = xCar = vzCar = 0;
     xWheel = 0;
     acc_distance = distance = 0;
@@ -224,6 +227,36 @@ private:
     lsp(0, b8_image_sprite0);
     mapsetup(XTILES, YTILES,std::nullopt,B8_PPU_BG_WRAP_REPEAT,B8_PPU_BG_WRAP_REPEAT);
     reqReset = GameState::Title;
+  }
+
+  void readMapData(){
+    const u16 idx_0 = (upMapData - 1)  & (N_FIFO_MAPDATA - 1);
+    const MapData& md_0 = mapData[ idx_0 ];
+
+    const u16 idx_1 = upMapData & (N_FIFO_MAPDATA - 1);
+    const MapData& md_1 = mapData[ idx_1 ];
+
+    const fx12 t = distance / md_1.distance;
+    ax_center = (fx12(1)-t) * md_0.ax + t * md_1.ax;
+  }
+
+  fx12  tblCenter[ NMAX_CENTER ];
+
+  void  calcCenter(){
+    int nn = 0;
+    fx12 x_center = 0;
+    fx12 vx_center = 0;
+    const fx12 yspan( YSPAN );
+    for( fx12 y=YPIX_BOTTOM ; y>YPIX_TOP ; y -= yspan , ++nn ){
+      if( nn >= NMAX_CENTER ) break;
+
+      tblCenter[ nn ] = x_center;
+
+      vx_center += ax_center;
+      x_center  += vx_center;
+      vx_center += ax_center;
+      x_center  += vx_center;
+    }
   }
 
   void updatePlaying(){
@@ -272,18 +305,14 @@ private:
       vzCar *= fx12(3937,4096);
     }
 
-
     vzCar = std::clamp(vzCar, fx12(0), MAX_VZ );
-
     distance           += vzCar;
     acc_distance       += vzCar;
     every_50_distance  += vzCar;
     every_100_distance += vzCar;
-
     if( every_50_distance > EVERY_50 ){
       every_50_distance -= EVERY_50;
     }
-
     if( every_100_distance > EVERY_100 ){
       every_100_distance -= EVERY_100;
 
@@ -303,6 +332,10 @@ private:
       upMapData = (upMapData + 1) & (N_FIFO_MAPDATA-1);
     }
 
+    readMapData();
+    calcCenter();
+    xCam = xCar;
+
     for( auto& obj : objs ){
       obj.update();
     }
@@ -316,17 +349,6 @@ private:
 
     setz(maxz());
     line_fx12(0,YPIX_BOTTOM,128,YPIX_BOTTOM,WHITE);
-    xCam = xCar;
-
-    const u16 idx_0 = (upMapData - 1)  & (N_FIFO_MAPDATA - 1);
-    const MapData& md_0 = mapData[ idx_0 ];
-
-    const u16 idx_1 = upMapData & (N_FIFO_MAPDATA - 1);
-    const MapData& md_1 = mapData[ idx_1 ];
-
-    const fx12 t = distance / md_1.distance;
-    const fx12 ax_center = (fx12(1)-t) * md_0.ax + t * md_1.ax;
-
     const fx12 YRANGE = YPIX_BOTTOM - YPIX_TOP;
     for( auto& obj : objs ){
       if( obj.state == Obj::Disappear ) continue;
@@ -341,18 +363,9 @@ private:
     Point right;
 
     int nn = 0;
-    fx12 x_center = 0;
-    fx12 ox_center;
     const fx12 yspan( YSPAN );
-    fx12 vx_center = 0;
     for( fx12 y=YPIX_BOTTOM ; y>YPIX_TOP ; y -= yspan , ++nn ){
-      ox_center = x_center;
-
-      vx_center += ax_center;
-      x_center  += vx_center;
-      vx_center += ax_center;
-      x_center  += vx_center;
-
+      const fx12 ox_center = tblCenter[ nn ];
       const fx12 tt     = (y - YPIX_TOP ) / YRANGE;  // TODO:
       const fx12 width  = W_NEAR * tt;
       const fx12 wc     = -xCam  * tt;
