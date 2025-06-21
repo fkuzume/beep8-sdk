@@ -318,9 +318,6 @@ private:
     line_fx12(0,YPIX_BOTTOM,128,YPIX_BOTTOM,WHITE);
     xCam = xCar;
 
-    fx12 x_center = 0;
-    fx12 vx_center = 0;
-
     const u16 idx_0 = (upMapData - 1)  & (N_FIFO_MAPDATA - 1);
     const MapData& md_0 = mapData[ idx_0 ];
 
@@ -330,11 +327,7 @@ private:
     const fx12 t = distance / md_1.distance;
     const fx12 ax_center = (fx12(1)-t) * md_0.ax + t * md_1.ax;
 
-    const fx12 yspan( YSPAN );
-    fx12 ox_center;
-
     const fx12 YRANGE = YPIX_BOTTOM - YPIX_TOP;
-
     for( auto& obj : objs ){
       if( obj.state == Obj::Disappear ) continue;
       obj.isDrawed = false; 
@@ -348,6 +341,10 @@ private:
     Point right;
 
     int nn = 0;
+    fx12 x_center = 0;
+    fx12 ox_center;
+    const fx12 yspan( YSPAN );
+    fx12 vx_center = 0;
     for( fx12 y=YPIX_BOTTOM ; y>YPIX_TOP ; y -= yspan , ++nn ){
       ox_center = x_center;
 
@@ -485,20 +482,6 @@ private:
 
   void  drawMyCar(){
     if( cnt_crash == 0 ){
-      #if 0
-      rectfill_fx12(
-        xCar - HW_CAR - xCam,
-        YPIX_BOTTOM - 12, 
-
-        xCar + HW_CAR - xCam,
-        YPIX_BOTTOM - 4,
-
-        LIGHT_PEACH,
-        X_SCREEN_OFFSET
-      );
-      #endif
-
-
       auto xx = to_fx8( xCar - xCam + 64 - 16 );
       auto yy = to_fx8(YPIX_BOTTOM - 12);
 
@@ -506,6 +489,7 @@ private:
 
       const int lxWheel  = xWheel>>1;
       const int lxWheel2 = xWheel>>2;
+
       const u32 uacc_distance = static_cast< u32 >( acc_distance );
       const u32 anm   = (uacc_distance>>4) & 1;
       const u32 yoff  = (uacc_distance>>5) & 1;
@@ -523,14 +507,20 @@ private:
         xx+24-2+lxWheel,yy-4
       );
 
+      int lxBody = 0;
+      if( lxWheel2 < 0 ){
+        lxBody = -1;
+      } else if ( lxWheel2 > 0 ){
+        lxBody = +1;
+      }
       spr(
         SPR_MYCACR_TAIL,
-        xx,yy+yoff_bd,
+        xx+lxBody,yy+yoff_bd,
         2,1
       );
       spr(
         SPR_MYCACR_TAIL,
-        xx+16,yy+yoff_bd,
+        xx+16+lxBody,yy+yoff_bd,
         2,1,
         true
       );
