@@ -156,6 +156,8 @@ class RaceApp : public Pico8 {
   int disp_score = 0;
   int cnt_title = 0;
   fx12 ax_center;
+  fx12 vx_center;
+  bool is_slipping;  
 public:
   int cnt_crash = 0;
   int cnt_clear = 0;
@@ -194,7 +196,8 @@ private:
 
     flushBg.setTable( flushAnimUsual );
 
-    ax_center = 0;
+    is_slipping = false;  
+    vx_center = ax_center = 0;
     xCam = xCar = vzCar = 0;
     xWheel = 0;
     acc_distance = distance = 0;
@@ -245,7 +248,7 @@ private:
   void  calcCenter(){
     int nn = 0;
     fx12 x_center = 0;
-    fx12 vx_center = 0;
+    vx_center = 0;
     const fx12 yspan( YSPAN );
     for( fx12 y=YPIX_BOTTOM ; y>YPIX_TOP ; y -= yspan , ++nn ){
       if( nn >= NMAX_CENTER ) break;
@@ -271,8 +274,13 @@ private:
       WATCH( cnt_crash );
     }
 
+    readMapData();
+    calcCenter();
+
+    is_slipping = false;  
     if( cnt_crash == 0 ){
-      fx12 vxCar =0;
+      fx12 vxCar = -vx_center; 
+      
       if( btn( BUTTON_LEFT ) ){
         vxCar = -8;
         --xWheel;
@@ -332,8 +340,6 @@ private:
       upMapData = (upMapData + 1) & (N_FIFO_MAPDATA-1);
     }
 
-    readMapData();
-    calcCenter();
     xCam = xCar;
 
     for( auto& obj : objs ){
