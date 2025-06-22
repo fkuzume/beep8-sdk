@@ -15,6 +15,7 @@ namespace {
   constexpr int SPR_MYCACR_TAIL         = 48;
   constexpr int SPR_MYCACR_FRONT_WHEEL  = 32;
   constexpr int SPR_MYCACR_REAR_WHEEL   = 16;
+  constexpr int SPR_SMOKE = 64;
 
   constexpr fx12 YPIX_TOP    = 70;
   constexpr fx12 YPIX_BOTTOM = 150;
@@ -30,6 +31,7 @@ namespace {
   constexpr fx12 HW_CAR = 20; 
   constexpr fx12 X_SCREEN_OFFSET = 64;
   constexpr fx12 MAX_VZ = fx12(8);
+  constexpr fx12 VZ_FRIC = fx12(4000,4096);
 
   static  Xorshift32 xors;
 
@@ -70,7 +72,6 @@ namespace {
     return result;
   }
 
-  // https://www.geogebra.org/graphing?lang=ja
   constexpr int NTBL = 400;
   static  s16 tblz2y[ NTBL ];
 
@@ -157,7 +158,7 @@ class RaceApp : public Pico8 {
   int cnt_title = 0;
   fx12 ax_center;
   fx12 vx_center;
-  bool is_slipping;  
+  fx12 vz_friction;
 public:
   int cnt_crash = 0;
   int cnt_clear = 0;
@@ -196,7 +197,7 @@ private:
 
     flushBg.setTable( flushAnimUsual );
 
-    is_slipping = false;  
+    vz_friction = fx12(1);
     vx_center = ax_center = 0;
     xCam = xCar = vzCar = 0;
     xWheel = 0;
@@ -277,15 +278,22 @@ private:
     readMapData();
     calcCenter();
 
-    is_slipping = false;  
+    vz_friction = fx12(1);
     if( cnt_crash == 0 ){
       fx12 vxCar = -vx_center; 
-      
+      const bool curved =  std::abs( vx_center );
+
       if( btn( BUTTON_LEFT ) ){
+        if( curved ) vz_friction = VZ_FRIC;
+
         vxCar = -8;
         --xWheel;
+        --xWheel;
       } else if( btn( BUTTON_RIGHT ) ){
+        if( curved ) vz_friction = VZ_FRIC;
+
         vxCar = +8;
+        ++xWheel;
         ++xWheel;
       } else {
         if( xWheel < 0 ){
@@ -294,7 +302,7 @@ private:
           --xWheel;
         }
       }
-      xWheel = std::clamp(xWheel,-6,+6);
+      xWheel = std::clamp(xWheel,-16,+16);
 
       if( vzCar > VZ_ENABLE_WHEEL ){
         xCar += vxCar;
@@ -312,7 +320,7 @@ private:
     } else {
       vzCar *= fx12(3937,4096);
     }
-
+    vzCar *= vz_friction;
     vzCar = std::clamp(vzCar, fx12(0), MAX_VZ );
     distance           += vzCar;
     acc_distance       += vzCar;
@@ -501,13 +509,14 @@ private:
 
   void  drawMyCar(){
     if( cnt_crash == 0 ){
+
       auto xx = to_fx8( xCar - xCam + 64 - 16 );
       auto yy = to_fx8(YPIX_BOTTOM - 12);
 
       setz(1);
 
-      const int lxWheel  = xWheel>>1;
-      const int lxWheel2 = xWheel>>2;
+      const int lxWheel  = xWheel>>2;
+      const int lxWheel2 = xWheel>>3;
 
       const u32 uacc_distance = static_cast< u32 >( acc_distance );
       const u32 anm   = (uacc_distance>>4) & 1;
@@ -544,14 +553,30 @@ private:
         true
       );
 
+      const fx8 lx_wheel = xx-lxWheel2;
       spr(
         SPR_MYCACR_REAR_WHEEL+anm,
-        xx-lxWheel2,yy+3-yoff
+        lx_wheel,yy+3-yoff
       );
+
+      const fx8 rx_wheel = lx_wheel + 24;
       spr(
         SPR_MYCACR_REAR_WHEEL+anm,
-        xx+24-lxWheel2,yy+3-yoff
+        rx_wheel,yy+3-yoff
       );
+
+      const bool slipping =  vz_friction < fx12(1);
+      static  Xorshift32 xors_smoke;
+      if( slipping ){
+        fx8 x_smoke = xWheel > 0 ? lx_wheel-1-(xors_smoke.next()&7) : rx_wheel+1+(xors_smoke.next()&7);
+        spr(
+          SPR_SMOKE + (xors_smoke.next()&3) ,
+          x_smoke,yy+3-yoff,
+          1,1,
+          xors_smoke.next()&1 ? true:false,
+          false
+        );
+      }
     } else {
     }
   }
