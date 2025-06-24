@@ -159,6 +159,7 @@ class RaceApp : public Pico8 {
   fx12 ax_center;
   fx12 vx_center;
   fx12 vz_friction;
+  bool slipping;
 public:
   int cnt_crash = 0;
   int cnt_clear = 0;
@@ -197,6 +198,8 @@ private:
 
     flushBg.setTable( flushAnimUsual );
 
+
+    slipping = false;
     vz_friction = fx12(1);
     vx_center = ax_center = 0;
     xCam = xCar = vzCar = 0;
@@ -320,6 +323,12 @@ private:
     } else {
       vzCar *= fx12(3937,4096);
     }
+
+    slipping = false;
+    if( vz_friction < fx12(1) ){
+      slipping = true;
+    }
+
     vzCar *= vz_friction;
     vzCar = std::clamp(vzCar, fx12(0), MAX_VZ );
     distance           += vzCar;
@@ -565,7 +574,6 @@ private:
         rx_wheel,yy+3-yoff
       );
 
-      const bool slipping =  vz_friction < fx12(1);
       static  Xorshift32 xors_smoke;
       if( slipping ){
         fx8 x_smoke = xWheel > 0 ? lx_wheel-1-(xors_smoke.next()&7) : rx_wheel+1+(xors_smoke.next()&7);
