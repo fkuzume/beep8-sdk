@@ -21,7 +21,7 @@ namespace {
   constexpr fx12 YPIX_BOTTOM = 150;
   constexpr fx12 W_NEAR = 200;
 
-  constexpr fx12 VZ_ENABLE_WHEEL = fx12(1);
+  constexpr fx12 VZ_ENABLE_WHEEL = fx12(1000,4096);
 
   constexpr fx12 EVERY_50   = 50;
   constexpr fx12 EVERY_100  = 100;
@@ -31,7 +31,9 @@ namespace {
   constexpr fx12 HW_CAR = 20; 
   constexpr fx12 X_SCREEN_OFFSET = 64;
   constexpr fx12 MAX_VZ = fx12(8);
-  constexpr fx12 VZ_FRIC = fx12(4000,4096);
+  //constexpr fx12 VZ_FRIC_CURVED = fx12(4030,4096);
+  constexpr fx12 VZ_FRIC_CURVED = fx12(4030,4096);
+  constexpr fx12 VX_FRIC_SLIPPING = fx12(4000,4096);
 
   static  Xorshift32 xors;
 
@@ -281,21 +283,26 @@ private:
     readMapData();
     calcCenter();
 
+    bool accel = false;
     vz_friction = fx12(1);
     if( cnt_crash == 0 ){
-      fx12 vxCar = -vx_center; 
-      const bool curved =  std::abs( vx_center );
+      fx12 vxCar = -vx_center * fx12(1300,1000); 
+      const bool curved = std::abs( vx_center ) != 0;
+      const u32 btn_o = btn( BUTTON_O );
+      const u32 btn_x = btn( BUTTON_X );
+
+      accel = btn_x ? true : false;
 
       if( btn( BUTTON_LEFT ) ){
-        if( curved ) vz_friction = VZ_FRIC;
+        if( curved && accel ) vz_friction = VZ_FRIC_CURVED;
 
-        vxCar = -8;
+        vxCar = -4;
         --xWheel;
         --xWheel;
       } else if( btn( BUTTON_RIGHT ) ){
-        if( curved ) vz_friction = VZ_FRIC;
+        if( curved && accel ) vz_friction = VZ_FRIC_CURVED;
 
-        vxCar = +8;
+        vxCar = +4;
         ++xWheel;
         ++xWheel;
       } else {
@@ -307,30 +314,30 @@ private:
       }
       xWheel = std::clamp(xWheel,-16,+16);
 
+      if( slipping ) vxCar *= VX_FRIC_SLIPPING;
+
       if( vzCar > VZ_ENABLE_WHEEL ){
         xCar += vxCar;
       } else {
         xWheel = 0;
       }
 
-      if( btn( BUTTON_O ) ){
+      if( btn_o ){
         vzCar -= fx12(200,4096);
-      } else if ( btn( BUTTON_X ) ){
+      } else if ( btn_x ){
         vzCar += fx12(130,4096);
       } else {
-        vzCar -= fx12(50,4096);
+        vzCar -= fx12(23,4096);
       }
     } else {
       vzCar *= fx12(3937,4096);
     }
 
-    slipping = false;
-    if( vz_friction < fx12(1) ){
-      slipping = true;
-    }
 
     vzCar *= vz_friction;
     vzCar = std::clamp(vzCar, fx12(0), MAX_VZ );
+    slipping = vz_friction < fx12(1) && vzCar > fx12(2) && accel == true;
+
     distance           += vzCar;
     acc_distance       += vzCar;
     every_50_distance  += vzCar;
@@ -341,6 +348,7 @@ private:
     if( every_100_distance > EVERY_100 ){
       every_100_distance -= EVERY_100;
 
+#if 1
       auto idobj = allocObj();
       if( idobj ){
         Obj& obj = objs[ idobj.value() ];
@@ -349,6 +357,7 @@ private:
         //obj.vz = fx12(3000,4096);
         obj.vz = 0;
       }
+#endif
     }
 
     MapData& md = mapData[ upMapData ];
@@ -634,6 +643,7 @@ public: virtual ~RaceApp(){}
 static  RaceApp  app;
 
 bool  Obj::chkIfCollide(){
+return false;
   if( this->z > 15 )  return  false;
   if( this->z < 0  )  return  false;
   if( this->x + this->hw < app.xCar - HW_CAR )  return  false;
