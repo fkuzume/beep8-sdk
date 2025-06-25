@@ -17,6 +17,10 @@ namespace {
   constexpr int SPR_MYCACR_REAR_WHEEL   = 16;
   constexpr int SPR_SMOKE = 64;
 
+  constexpr int OTZ_ROAD = 15;
+  constexpr int OTZ_OBJ  = 14;
+  constexpr int OTZ_CAR  = 3;
+
   constexpr fx12 YPIX_TOP    = 70;
   constexpr fx12 YPIX_BOTTOM = 150;
   constexpr fx12 W_NEAR = 200;
@@ -97,7 +101,6 @@ namespace {
 
 } // local namespace
 
-
 struct  Point {
   fx12 x;
   fx12 y;
@@ -132,11 +135,14 @@ struct  Obj {
     Disappear,
     Appear
   };
+  State state       = Disappear;
+
   enum DrawType : uint8_t {
     Nothing,
-    Car
+    Car,
+    Pole,
+    RoadsideLights
   };
-  State state       = Disappear;
   DrawType drawType = Nothing;
 
   fx12 x = 0;
@@ -177,8 +183,13 @@ private:
   fx12    xCam;
   fx12    distance;
   fx12    acc_distance;
+
   fx12    every_50_distance;
+  int     cnt_every_50_distance;
+
   fx12    every_100_distance;
+  int     cnt_every_100_distance;
+
   u16     upMapData;
   MapData mapData[ N_FIFO_MAPDATA ];
   vector< Obj > objs = std::vector< Obj >( NOBJ );
@@ -210,8 +221,12 @@ private:
     xCam = xCar = vzCar = 0;
     xWheel = 0;
     acc_distance = distance = 0;
+
     every_50_distance = 0;
+    cnt_every_50_distance = 0;
+
     every_100_distance = 0;
+    cnt_every_100_distance = 0;
 
     upMapData = 1;
     for( u16 nn=0 ; nn < N_FIFO_MAPDATA ; ++nn ){
@@ -290,21 +305,26 @@ private:
       const fx12 abs_vx_center = _abs( vx_center );
       const fx12 ratio_abs_vx_center = abs_vx_center * fx12(1,1000);
       const bool curved = abs_vx_center != 0; 
+#if 0
       const u32 btn_o = btn( BUTTON_O );
       const u32 btn_x = btn( BUTTON_X );
+#else
+      const u32 btn_o = false;
+      const u32 btn_x = true;
+#endif
 
       accel = btn_x ? true : false;
 
       if( btn( BUTTON_LEFT ) ){
         if( curved && accel ) vz_friction = VZ_FRIC_CURVED - ratio_abs_vx_center;
 
-        vxCar = -4;
+        vxCar = -6;
         --xWheel;
         --xWheel;
       } else if( btn( BUTTON_RIGHT ) ){
         if( curved && accel ) vz_friction = VZ_FRIC_CURVED - ratio_abs_vx_center;
 
-        vxCar = +4;
+        vxCar = +6;
         ++xWheel;
         ++xWheel;
       } else {
@@ -345,10 +365,34 @@ private:
     every_100_distance += vzCar;
     if( every_50_distance > EVERY_50 ){
       every_50_distance -= EVERY_50;
+      ++cnt_every_50_distance;
     }
+
     if( every_100_distance > EVERY_100 ){
       every_100_distance -= EVERY_100;
+      ++cnt_every_100_distance;
 
+      if( cnt_every_100_distance & 3 ){;
+        auto idobj = allocObj();
+        if( idobj ){
+          Obj& obj = objs[ idobj.value() ];
+          obj.x = W_NEAR + 30;
+          obj.z = +300;
+          obj.vz = 0;
+          obj.drawType = Obj::Pole;
+        }
+      } else {
+        auto idobj = allocObj();
+        if( idobj ){
+          Obj& obj = objs[ idobj.value() ];
+          obj.x = (W_NEAR + 30);
+          obj.z = +300;
+          obj.vz = 0;
+          obj.drawType = Obj::RoadsideLights;
+        }
+      }
+
+      #if 0
       auto idobj = allocObj();
       if( idobj ){
         Obj& obj = objs[ idobj.value() ];
@@ -356,7 +400,9 @@ private:
         obj.z = +300;
         //obj.vz = fx12(3000,4096);
         obj.vz = 0;
+        obj.drawType = Obj::Car;
       }
+      #endif
     }
 
     MapData& md = mapData[ upMapData ];
@@ -411,6 +457,7 @@ private:
       right.y = center.y;
 
       if( nn > 0 ){
+        setz( OTZ_ROAD );
         line_fx12(pcenter,center, DARK_GREY, X_SCREEN_OFFSET);
         line_fx12(pleft,  left,   DARK_GREY, X_SCREEN_OFFSET);
         line_fx12(pright, right,  DARK_GREY, X_SCREEN_OFFSET);
@@ -420,6 +467,7 @@ private:
       pleft   = left;
       pright  = right;
 
+      setz( OTZ_OBJ );
       const s16 iy = static_cast< s16 >( y );
       for( auto& obj : objs ){
         if( obj.state == Obj::Disappear ) continue;
@@ -434,7 +482,7 @@ private:
     }    
 
     // mycar
-    setz(3);
+    setz( OTZ_CAR );
     drawMyCar();
   }
 
@@ -674,17 +722,48 @@ void  Obj::draw(fx12 t,fx12 x_center,fx12 xCam,fx12 y){
   isDrawed = true;
   if( y < YPIX_TOP )    return;
   if( y > YPIX_BOTTOM ) return;
+  if( this->z < 0 )     return;
 
-  const fx12  width = this->hw * 2; 
-  const fx12  xl = x_center + (-xCam + this->x - this->hw) * t;
-  const Point ll( xl, y);
-  const Point rr( xl + width * t, y);
+  switch( drawType ){
+    case  Car:{
+      const fx12  width = this->hw * 2; 
+      const fx12  xl = x_center + (-xCam + this->x - this->hw) * t;
+      const Point ll( xl, y);
+      const Point rr( xl + width * t, y);
+      line_fx12(ll,rr,RED,X_SCREEN_OFFSET);
+    }break;
 
-  Color color = RED;
-  //if( chkIfCollide() )  color = GREEN;
+    case  Pole:{
+      const fx12  xl = x_center + (-xCam + this->x) * t;
+      const Point p0(xl,y);
+      const Point p1(xl,y-30*t);
+      line_fx12(p0,p1,WHITE,X_SCREEN_OFFSET);
+    }break;
 
-  if( this->z < 0 ) return;
-  line_fx12(ll,rr,color,X_SCREEN_OFFSET);
+    case  RoadsideLights:{
+      const fx12  xl = x_center + (-xCam + this->x) * t;
+      const Point p0(xl,y);
+      const Point p1(xl,        y-200*t);
+      const Point p2(p1.x-90*t, p1.y );
+      line_fx12(p0,p1,WHITE,X_SCREEN_OFFSET);
+      line_fx12(p1,p2,WHITE,X_SCREEN_OFFSET);
+
+      rectfill_fx12(
+        p2.x - 15*t,
+        p2.y,
+
+        p2.x + 15*t,
+        p2.y + 10*t,
+
+        YELLOW,
+        X_SCREEN_OFFSET
+      );
+
+    }break;
+
+    case  Nothing:
+      break;
+  }
 }
 
 int main() {
