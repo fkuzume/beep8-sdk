@@ -30,15 +30,18 @@ namespace {
 
   constexpr fx12 HW_CAR = 20; 
   constexpr fx12 X_SCREEN_OFFSET = 64;
-  constexpr fx12 MAX_VZ = fx12(8);
-  //constexpr fx12 VZ_FRIC_CURVED = fx12(4030,4096);
-  constexpr fx12 VZ_FRIC_CURVED = fx12(4030,4096);
+  constexpr fx12 MAX_VZ = fx12(10);
+  constexpr fx12 VZ_FRIC_CURVED = fx12(4037,4096);
   constexpr fx12 VX_FRIC_SLIPPING = fx12(4000,4096);
 
   static  Xorshift32 xors;
 
   static  constexpr auto  flushAnimUsual  = to_array<pico8::Color>({BLACK});
   static  constexpr auto  flushAnimBurnt  = to_array<pico8::Color>({RED,BLACK,ORANGE,RED,BLACK,RED,BLACK,ORANGE,ORANGE,ORANGE,DARK_BLUE,ORANGE,RED,ORANGE,ORANGE,RED,BLACK});
+
+  inline  const fx12 _abs(const fx12& x_ ){
+    return x_ > fx12(0) ? x_ : -x_;
+  }
 
   inline fx8 to_fx8(fx12 v){ return static_cast<fx8>(v); }
 
@@ -275,10 +278,7 @@ private:
       reqReset = GameState::Title;
     }
 
-    if( cnt_crash > 0 ){
-      cnt_crash++;
-      WATCH( cnt_crash );
-    }
+    if( cnt_crash > 0 ) cnt_crash++;
 
     readMapData();
     calcCenter();
@@ -286,21 +286,23 @@ private:
     bool accel = false;
     vz_friction = fx12(1);
     if( cnt_crash == 0 ){
-      fx12 vxCar = -vx_center * fx12(1300,1000); 
-      const bool curved = std::abs( vx_center ) != 0;
+      fx12 vxCar = -vx_center * fx12(873,1000); 
+      const fx12 abs_vx_center = _abs( vx_center );
+      const fx12 ratio_abs_vx_center = abs_vx_center * fx12(1,1000);
+      const bool curved = abs_vx_center != 0; 
       const u32 btn_o = btn( BUTTON_O );
       const u32 btn_x = btn( BUTTON_X );
 
       accel = btn_x ? true : false;
 
       if( btn( BUTTON_LEFT ) ){
-        if( curved && accel ) vz_friction = VZ_FRIC_CURVED;
+        if( curved && accel ) vz_friction = VZ_FRIC_CURVED - ratio_abs_vx_center;
 
         vxCar = -4;
         --xWheel;
         --xWheel;
       } else if( btn( BUTTON_RIGHT ) ){
-        if( curved && accel ) vz_friction = VZ_FRIC_CURVED;
+        if( curved && accel ) vz_friction = VZ_FRIC_CURVED - ratio_abs_vx_center;
 
         vxCar = +4;
         ++xWheel;
@@ -333,7 +335,6 @@ private:
       vzCar *= fx12(3937,4096);
     }
 
-
     vzCar *= vz_friction;
     vzCar = std::clamp(vzCar, fx12(0), MAX_VZ );
     slipping = vz_friction < fx12(1) && vzCar > fx12(2) && accel == true;
@@ -348,7 +349,6 @@ private:
     if( every_100_distance > EVERY_100 ){
       every_100_distance -= EVERY_100;
 
-#if 1
       auto idobj = allocObj();
       if( idobj ){
         Obj& obj = objs[ idobj.value() ];
@@ -357,7 +357,6 @@ private:
         //obj.vz = fx12(3000,4096);
         obj.vz = 0;
       }
-#endif
     }
 
     MapData& md = mapData[ upMapData ];
