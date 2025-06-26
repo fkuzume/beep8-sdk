@@ -141,14 +141,19 @@ struct  Obj {
     Nothing,
     Car,
     Pole,
-    RoadsideLights
+    RoadsideLights,
+    Signboard,
+    TallSignboard,
+    Bridge
   };
   DrawType drawType = Nothing;
+  Color color[2];
 
   fx12 x = 0;
   fx12 z = 0;
   fx12 vz = 0;
   fx12 hw = 35;  // half width
+  fx12 height = 0;
   bool isDrawed = false;
   bool  chkIfCollide();
   void  update();
@@ -385,11 +390,36 @@ private:
         auto idobj = allocObj();
         if( idobj ){
           Obj& obj = objs[ idobj.value() ];
+#if 0
           obj.x = (W_NEAR + 30);
-obj.x = - obj.x;
           obj.z = +300;
           obj.vz = 0;
           obj.drawType = Obj::RoadsideLights;
+#endif
+#if 1
+          obj.x = (W_NEAR + 100);
+          if( xors.next() & 1 ) obj.x = - obj.x;
+          obj.z = +350;
+          obj.vz = 0;
+
+          static const Color colors[] = {DARK_BLUE,DARK_BLUE,DARK_GREY,DARK_PURPLE};
+          obj.color[0] = rndt( colors );
+          obj.color[1] = rndt( colors );
+
+          obj.height = (xors.next() & 3) ? 70:40;
+
+          obj.drawType = Obj::Signboard;
+//obj.drawType = Obj::TallSignboard;
+#endif
+        }
+
+        auto idobj_bridge = allocObj();
+        if( idobj_bridge ){
+          Obj& obj = objs[ idobj.value() ];
+          obj.x = 0;
+          obj.z = +500;
+          obj.vz = 0;
+          obj.drawType = Obj::Bridge;
         }
       }
 
@@ -713,7 +743,7 @@ void  Obj::update(){
     }
   }
 
-  if( this->z < -20 || this->z > 400+20 ){
+  if( this->z < -20 || this->z > 350+20 ){
     state = Disappear;
   }
 }
@@ -760,7 +790,110 @@ void  Obj::draw(fx12 t,fx12 x_center,fx12 xCam,fx12 y){
         YELLOW,
         X_SCREEN_OFFSET
       );
+    }break;
+    
+    case  Signboard:{
+      const fx12  xl = x_center + (-xCam + this->x) * t;
 
+      const fx12 tx40 = 40 * t;
+      const fx12 tx20 = 20 * t;
+
+      line_fx12(
+        xl - tx40,
+        y  - tx20,
+
+        xl - tx40,
+        y,
+        color[1],
+        X_SCREEN_OFFSET
+      );
+
+      line_fx12(
+        xl + tx40,
+        y  - tx20,
+
+        xl + tx40,
+        y,
+        color[1],
+        X_SCREEN_OFFSET
+      );
+
+      const fx12 tx60 = 60 * t;
+      rectfill_fx12(
+        xl - tx60,
+        y - this->height*t,
+
+        xl + tx60,
+        y - 10*t,
+
+        color[0],
+        X_SCREEN_OFFSET
+      );
+    }break;
+
+    case  TallSignboard:{
+      const fx12  xl = x_center + (-xCam + this->x) * t;
+      const fx12  tx8   = 8 * t;
+      const fx12  tx100 = 100 * t;
+      const fx12  tx130 = 130 * t;
+
+      rectfill_fx12(
+        xl - tx8,
+        y  - tx130,
+
+        xl + tx8,
+        y,
+
+        color[1],
+        X_SCREEN_OFFSET
+      );
+
+      rectfill_fx12(
+        xl - tx100,
+        y  - 200*t,
+
+        xl + tx100,
+        y  - tx130,
+
+        color[0],
+        X_SCREEN_OFFSET
+      );
+    }break;
+
+    case  Bridge:{
+      const fx12  height = 130 * t;
+      const fx12  xl = x_center + (-xCam + this->x) * t;
+      const fx12 width = W_NEAR *  fx12(1200,1000);
+
+      line_fx12(
+        xl - width*t,
+        y  - height ,
+
+        xl + width*t,
+        y  - height ,
+        DARK_GREY,
+        X_SCREEN_OFFSET
+      );
+
+      line_fx12(
+        xl - width*t,
+        y  - height ,
+
+        xl - width*t,
+        y,
+        DARK_GREY,
+        X_SCREEN_OFFSET
+      );
+
+      line_fx12(
+        xl + width*t,
+        y  - height ,
+
+        xl + width*t,
+        y,
+        DARK_GREY,
+        X_SCREEN_OFFSET
+      );
     }break;
 
     case  Nothing:
