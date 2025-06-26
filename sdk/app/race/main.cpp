@@ -386,6 +386,7 @@ private:
         if( idobj ){
           Obj& obj = objs[ idobj.value() ];
           obj.x = (W_NEAR + 30);
+obj.x = - obj.x;
           obj.z = +300;
           obj.vz = 0;
           obj.drawType = Obj::RoadsideLights;
@@ -744,7 +745,8 @@ void  Obj::draw(fx12 t,fx12 x_center,fx12 xCam,fx12 y){
       const fx12  xl = x_center + (-xCam + this->x) * t;
       const Point p0(xl,y);
       const Point p1(xl,        y-200*t);
-      const Point p2(p1.x-90*t, p1.y );
+      fx12 xt = this->x > 0 ? t : -t;
+      const Point p2(p1.x-90*xt, p1.y );
       line_fx12(p0,p1,WHITE,X_SCREEN_OFFSET);
       line_fx12(p1,p2,WHITE,X_SCREEN_OFFSET);
 
