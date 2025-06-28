@@ -21,7 +21,8 @@ namespace {
   constexpr int OTZ_OBJ  = 14;
   constexpr int OTZ_CAR  = 3;
 
-  constexpr fx12 YPIX_TOP    = 70;
+  constexpr fx12 YPIX_TOP    = 60;
+  //constexpr fx12 YPIX_TOP    = 66;
   constexpr fx12 YPIX_BOTTOM = 150;
   constexpr fx12 W_NEAR = 200;
 
@@ -29,6 +30,9 @@ namespace {
 
   constexpr fx12 EVERY_50   = 50;
   constexpr fx12 EVERY_100  = 100;
+
+  constexpr fx12 Z_CLIP_NEAR = -20;
+  constexpr fx12 Z_CLIP_FAR  = 550;
 
   constexpr u16 N_FIFO_MAPDATA = 32;  // must be 2^n
 
@@ -81,15 +85,20 @@ namespace {
     return result;
   }
 
-  constexpr int NTBL = 400;
+  constexpr int NTBL = 500;
   static  s16 tblz2y[ NTBL ];
 
   void  genTableZ2Y(){
     constexpr fx12  v100(100);
     constexpr fx12  v10000(10000);
+    constexpr fx12  a = fx12(5,2);
     for( int z=0 ; z<NTBL ; ++z ){
-      tblz2y[ z ] = static_cast< s16 >( YPIX_BOTTOM - ( v100 - v10000/(z+v100) ) );
+      const fx12  zz(z);
+      tblz2y[ z ] = static_cast< s16 >( YPIX_BOTTOM - ( fx12(90) - v10000/(a*z+fx12(110)) ) );
+WATCH( tblz2y[ z ] );
+WATCH( z);
     }
+//exit(0);
   }
 
   s16   z2y( fx12 z ){
@@ -240,7 +249,8 @@ private:
       if( nn <= 2 ){
         md.ax = 0;
       } else {
-        md.ax = rndf12( fx12(-19,100), fx12(+19,100) );
+        //md.ax = rndf12( fx12(-19,100), fx12(+19,100) );
+        md.ax = rndf12( fx12(-1,100), fx12(+1,100) );
       }
     }
 
@@ -339,7 +349,7 @@ private:
           --xWheel;
         }
       }
-      xWheel = std::clamp(xWheel,-16,+16);
+      xWheel = std::clamp(xWheel,-18,+18);
 
       if( slipping ) vxCar *= VX_FRIC_SLIPPING;
 
@@ -382,7 +392,7 @@ private:
         if( idobj ){
           Obj& obj = objs[ idobj.value() ];
           obj.x = W_NEAR + 30;
-          obj.z = +300;
+          obj.z = +500;
           obj.vz = 0;
           obj.drawType = Obj::Pole;
         }
@@ -399,7 +409,7 @@ private:
 #if 1
           obj.x = (W_NEAR + 100);
           if( xors.next() & 1 ) obj.x = - obj.x;
-          obj.z = +350;
+          obj.z = +500;
           obj.vz = 0;
 
           static const Color colors[] = {DARK_BLUE,DARK_BLUE,DARK_GREY,DARK_PURPLE};
@@ -413,6 +423,7 @@ private:
 #endif
         }
 
+        #if 0
         auto idobj_bridge = allocObj();
         if( idobj_bridge ){
           Obj& obj = objs[ idobj.value() ];
@@ -421,14 +432,15 @@ private:
           obj.vz = 0;
           obj.drawType = Obj::Bridge;
         }
+        #endif
       }
 
-      #if 0
+      #if 1
       auto idobj = allocObj();
       if( idobj ){
         Obj& obj = objs[ idobj.value() ];
         obj.x = -40;
-        obj.z = +300;
+        obj.z = +500;
         //obj.vz = fx12(3000,4096);
         obj.vz = 0;
         obj.drawType = Obj::Car;
@@ -457,7 +469,6 @@ private:
 
     setz(maxz());
     line_fx12(0,YPIX_BOTTOM,128,YPIX_BOTTOM,WHITE);
-    const fx12 YRANGE = YPIX_BOTTOM - YPIX_TOP;
     for( auto& obj : objs ){
       if( obj.state == Obj::Disappear ) continue;
       obj.isDrawed = false; 
@@ -471,10 +482,10 @@ private:
     Point right;
 
     int nn = 0;
-    const fx12 yspan( YSPAN );
-    for( fx12 y=YPIX_BOTTOM ; y>YPIX_TOP ; y -= yspan , ++nn ){
+    const fx12 YRANGE = YPIX_BOTTOM - YPIX_TOP;
+    for( fx12 y=YPIX_BOTTOM ; y>=YPIX_TOP ; y -= YSPAN , ++nn ){
       const fx12 ox_center = tblCenter[ nn ];
-      const fx12 tt     = (y - YPIX_TOP ) / YRANGE;  // TODO:
+      const fx12 tt     = (y - YPIX_TOP ) / YRANGE;
       const fx12 width  = W_NEAR * tt;
       const fx12 wc     = -xCam  * tt;
 
@@ -743,7 +754,7 @@ void  Obj::update(){
     }
   }
 
-  if( this->z < -20 || this->z > 350+20 ){
+  if( this->z < Z_CLIP_NEAR || this->z > Z_CLIP_FAR ){
     state = Disappear;
   }
 }
