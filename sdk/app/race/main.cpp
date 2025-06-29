@@ -308,13 +308,83 @@ private:
     Obj& obj = objs[ idobj.value() ];
     obj.drawType = Obj::Pole;
     obj.x = W_NEAR + 30;
+    if( xors.next() & 1)  obj.x = -obj.x;
     obj.z = +500;
     obj.vz = 0;
+  }
+
+  void appearRoadsideLights(){
+    auto idobj = allocObj();
+    if( !idobj )  return;
+
+    Obj& obj = objs[ idobj.value() ];
+    obj.x = (W_NEAR + 30);
+    obj.z = +300;
+    obj.vz = 0;
+    obj.drawType = Obj::RoadsideLights;
+  }
+
+  void appearSignboard(){
+    auto idobj = allocObj();
+    if( !idobj )  return;
+    Obj& obj = objs[ idobj.value() ];
+
+    obj.x = (W_NEAR + 100);
+    if( xors.next() & 1 ) obj.x = - obj.x;
+    obj.z = +500;
+    obj.vz = 0;
+
+    static const Color colors[] = {DARK_BLUE,DARK_BLUE,DARK_GREY,DARK_PURPLE};
+    obj.color[0] = rndt( colors );
+    obj.color[1] = rndt( colors );
+
+    obj.height = (xors.next() & 3) ? 70:40;
+
+    static const  Obj::DrawType dt[] = { Obj::Signboard,Obj::Signboard,Obj::Signboard,Obj::TallSignboard };
+    obj.drawType = rndt( dt );
+  }
+
+  void appearBridge(){
+    auto idobj = allocObj();
+    if( !idobj )  return;
+
+    Obj& obj = objs[ idobj.value() ];
+    obj.x = 0;
+    obj.z = +470;
+    obj.vz = 0;
+    obj.drawType = Obj::Bridge;
+  }
+
+  void  appearCar(){
+    auto idobj = allocObj();
+    if( !idobj )  return;
+
+    Obj& obj = objs[ idobj.value() ];
+    obj.x = xors.next() & 1 ? -53 : +53;
+    obj.z = +500;
+    obj.vz = fx12(2);
+    obj.drawType = Obj::Car;
   }
 
   void every50(){
     if( every(cnt_every_50_distance,3) ){
       appearPole();
+    }
+
+    if( every(cnt_every_50_distance,7) ){
+      appearRoadsideLights();
+    }
+
+    if( every( xors.next(), 7) ){
+      appearSignboard();
+    }
+
+    if( every(cnt_every_50_distance,7) ){
+      appearCar();
+    }
+
+    if( every( xors.next(), 63) ){
+      appearBridge();
     }
   }
 
@@ -399,69 +469,6 @@ private:
       ++cnt_every_50_distance;
       every50();
     }
-#if 0
-      if( cnt_every_100_distance & 3 ){;
-        auto idobj = allocObj();
-        if( idobj ){
-          Obj& obj = objs[ idobj.value() ];
-          obj.x = W_NEAR + 30;
-          obj.z = +500;
-          obj.vz = 0;
-          obj.drawType = Obj::Pole;
-        }
-      } else {
-        auto idobj = allocObj();
-        if( idobj ){
-          Obj& obj = objs[ idobj.value() ];
-#if 0
-          obj.x = (W_NEAR + 30);
-          obj.z = +300;
-          obj.vz = 0;
-          obj.drawType = Obj::RoadsideLights;
-#endif
-#if 1
-          obj.x = (W_NEAR + 100);
-          if( xors.next() & 1 ) obj.x = - obj.x;
-          obj.z = +500;
-          obj.vz = 0;
-
-          static const Color colors[] = {DARK_BLUE,DARK_BLUE,DARK_GREY,DARK_PURPLE};
-          obj.color[0] = rndt( colors );
-          obj.color[1] = rndt( colors );
-
-          obj.height = (xors.next() & 3) ? 70:40;
-
-          obj.drawType = Obj::Signboard;
-//obj.drawType = Obj::TallSignboard;
-#endif
-        }
-
-        #if 1
-        auto idobj_bridge = allocObj();
-        if( idobj_bridge ){
-          Obj& obj = objs[ idobj.value() ];
-          obj.x = 0;
-          obj.z = +500;
-          obj.vz = 0;
-          obj.drawType = Obj::Bridge;
-        }
-        #endif
-
-      #if 1
-      {
-        auto idobj = allocObj();
-        if( idobj ){
-          Obj& obj = objs[ idobj.value() ];
-          obj.x = -40;
-          obj.z = +500;
-          //obj.vz = fx12(3000,4096);
-          obj.vz = 0;
-          obj.drawType = Obj::Car;
-        }
-      }
-      #endif
-    }
-#endif
 
     MapData& md = mapData[ upMapData ];
     if( distance > md.distance ){
@@ -800,9 +807,9 @@ void  Obj::draw(fx12 t,fx12 x_center,fx12 xCam,fx12 y){
     case  RoadsideLights:{
       const fx12  xl = x_center + (-xCam + this->x) * t;
       const Point p0(xl,y);
-      const Point p1(xl,        y-200*t);
+      const Point p1(xl,        y-150*t);
       fx12 xt = this->x > 0 ? t : -t;
-      const Point p2(p1.x-90*xt, p1.y );
+      const Point p2(p1.x-77*xt, p1.y );
       line_fx12(p0,p1,WHITE,X_SCREEN_OFFSET);
       line_fx12(p1,p2,WHITE,X_SCREEN_OFFSET);
 
