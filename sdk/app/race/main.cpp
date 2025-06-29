@@ -38,7 +38,7 @@ namespace {
 
   constexpr fx12 HW_CAR = 20; 
   constexpr fx12 X_SCREEN_OFFSET = 64;
-  constexpr fx12 MAX_VZ = fx12(10);
+  constexpr fx12 MAX_VZ = fx12(8);
   constexpr fx12 VZ_FRIC_CURVED = fx12(4037,4096);
   constexpr fx12 VX_FRIC_SLIPPING = fx12(4000,4096);
 
@@ -89,23 +89,25 @@ namespace {
   static  s16 tblz2y[ NTBL ];
 
   void  genTableZ2Y(){
-    constexpr fx12  v100(100);
-    constexpr fx12  v10000(10000);
-    constexpr fx12  a = fx12(5,2);
+    constexpr fx12  range(105);
+    constexpr fx12  nume(10000);
+    constexpr fx12  a(2);
+    const fx12  div = nume / range;
     for( int z=0 ; z<NTBL ; ++z ){
       const fx12  zz(z);
-      tblz2y[ z ] = static_cast< s16 >( YPIX_BOTTOM - ( fx12(90) - v10000/(a*z+fx12(110)) ) );
-WATCH( tblz2y[ z ] );
-WATCH( z);
+      tblz2y[ z ] = static_cast< s16 >( YPIX_BOTTOM - ( range - nume/(a*z+div) ) );
     }
-//exit(0);
   }
 
   s16   z2y( fx12 z ){
     int iz = static_cast< int >( z );
     if( iz < 0 )      iz = 0;
     if( iz > NTBL-1 ) iz = NTBL-1;
+    #if 0
     return tblz2y[ iz ];
+    #else
+    return tblz2y[ std::clamp( iz,0,NTBL-1) ];
+    #endif
   }
 
 } // local namespace
@@ -423,7 +425,7 @@ private:
 #endif
         }
 
-        #if 0
+        #if 1
         auto idobj_bridge = allocObj();
         if( idobj_bridge ){
           Obj& obj = objs[ idobj.value() ];
