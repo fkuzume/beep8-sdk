@@ -39,7 +39,7 @@ namespace {
   constexpr fx12 HW_CAR = 20; 
   constexpr fx12 X_SCREEN_OFFSET = 64;
   constexpr fx12 MAX_VZ = fx12(8);
-  constexpr fx12 VZ_FRIC_CURVED = fx12(4037,4096);
+  constexpr fx12 VZ_FRIC_CURVED = fx12(1);
   constexpr fx12 VX_FRIC_SLIPPING = fx12(4000,4096);
 
   static  Xorshift32 xors;
@@ -169,7 +169,8 @@ struct  Obj {
   fx12 vz = 0;
   fx12 hw = 35;  // half width
   fx12 height = 0;
-  bool isDrawed = false;
+  bool  isCollidable = false;  
+  bool  isDrawed = false;
   bool  chkIfCollide();
   void  update();
   void  draw(fx12 t,fx12 x_center,fx12 wc,fx12 y);
@@ -190,7 +191,8 @@ class RaceApp : public Pico8 {
   fx12 ax_center;
   fx12 vx_center;
   fx12 vz_friction;
-  bool slipping;
+  bool  slipping;
+  bool  brake;
 public:
   int cnt_crash = 0;
   int cnt_clear = 0;
@@ -231,8 +233,8 @@ private:
 
     flushBg.setTable( flushAnimUsual );
 
-
     slipping = false;
+    brake = false;
     vz_friction = fx12(1);
     vx_center = ax_center = 0;
     xCam = xCar = vzCar = 0;
@@ -250,7 +252,9 @@ private:
         md.ax = 0;
       } else {
         //md.ax = rndf12( fx12(-19,100), fx12(+19,100) );
-        md.ax = rndf12( fx12(-1,100), fx12(+1,100) );
+        //md.ax = rndf12( fx12(-1,100), fx12(+1,100) );
+        md.ax = rndf12( fx12(-10,100), fx12(+10,100) );
+        //md.ax = 0;
       }
     }
 
@@ -360,6 +364,7 @@ private:
     if( !idobj )  return;
 
     Obj& obj = objs[ idobj.value() ];
+    obj.isCollidable = true;
     obj.x = xors.next() & 1 ? -53 : +53;
     obj.z = +500;
     obj.vz = fx12(2);
@@ -388,30 +393,22 @@ private:
     }
   }
 
-  void updatePlaying(){
-    if( score >= CLEAR_SCORE ){
-      reqReset = GameState::Clear;
-    } else if( dead ){
-      reqReset = GameState::Title;
-    }
-
-    if( cnt_crash > 0 ) cnt_crash++;
-
-    readMapData();
-    calcCenter();
-
+  void updateMyCar(){
+    brake = false;
     bool accel = false;
     vz_friction = fx12(1);
+    bool rot_handle = false;
+
     if( cnt_crash == 0 ){
       fx12 vxCar = -vx_center * fx12(873,1000); 
       const fx12 abs_vx_center = _abs( vx_center );
-      const fx12 ratio_abs_vx_center = abs_vx_center * fx12(1,1000);
+      const fx12 ratio_abs_vx_center = abs_vx_center * fx12(4,1000);
       const bool curved = abs_vx_center != 0; 
 #if 0
       const u32 btn_o = btn( BUTTON_O );
       const u32 btn_x = btn( BUTTON_X );
 #else
-      const u32 btn_o = false;
+      const u32 btn_o = btn( BUTTON_O );
       const u32 btn_x = true;
 #endif
 
@@ -419,14 +416,14 @@ private:
 
       if( btn( BUTTON_LEFT ) ){
         if( curved && accel ) vz_friction = VZ_FRIC_CURVED - ratio_abs_vx_center;
-
-        vxCar = -6;
+        rot_handle = true;
+        vxCar = -8;
         --xWheel;
         --xWheel;
       } else if( btn( BUTTON_RIGHT ) ){
         if( curved && accel ) vz_friction = VZ_FRIC_CURVED - ratio_abs_vx_center;
-
-        vxCar = +6;
+        rot_handle = true;
+        vxCar = +8;
         ++xWheel;
         ++xWheel;
       } else {
@@ -448,6 +445,7 @@ private:
 
       if( btn_o ){
         vzCar -= fx12(200,4096);
+        brake = true;
       } else if ( btn_x ){
         vzCar += fx12(130,4096);
       } else {
@@ -458,8 +456,27 @@ private:
     }
 
     vzCar *= vz_friction;
+    if( rot_handle ){
+      //vzCar *= fx12(4061,4096);
+      vzCar *= fx12(4071,4096);
+    }
+
     vzCar = std::clamp(vzCar, fx12(0), MAX_VZ );
     slipping = vz_friction < fx12(1) && vzCar > fx12(2) && accel == true;
+  }
+
+  void updatePlaying(){
+    if( score >= CLEAR_SCORE ){
+      reqReset = GameState::Clear;
+    } else if( dead ){
+      reqReset = GameState::Title;
+    }
+
+    if( cnt_crash > 0 ) cnt_crash++;
+
+    readMapData();
+    calcCenter();
+    updateMyCar();
 
     distance           += vzCar;
     acc_distance       += vzCar;
@@ -478,9 +495,7 @@ private:
 
     xCam = xCar;
 
-    for( auto& obj : objs ){
-      obj.update();
-    }
+    for( auto& obj : objs ) obj.update();
   }
 
   void drawPlaying(){
@@ -644,16 +659,22 @@ private:
 
       setz(1);
 
-      const int lxWheel  = xWheel>>2;
-      const int lxWheel2 = xWheel>>3;
+      const int lxWheel  = xWheel>>1;
+      const int lxWheel2 = xWheel>>2;
 
       const u32 uacc_distance = static_cast< u32 >( acc_distance );
       const u32 anm   = (uacc_distance>>4) & 1;
-      const u32 yoff  = (uacc_distance>>5) & 1;
+      u32 yoff  = (uacc_distance>>5) & 1;
+      if( brake ){
+        --yoff;
+        yoff += xors.next()&3;
+      }
+
       u32 yoff_bd  = 0;
       if( ((uacc_distance+77) & 0xff) == 0 ){
         ++yoff_bd;
       }
+      if( brake ) yoff_bd += xors.next()&1;
 
       spr(
         SPR_MYCACR_FRONT_WHEEL+anm,
@@ -695,8 +716,18 @@ private:
       );
 
       static  Xorshift32 xors_smoke;
+
+      bool lr[2] = {false,false};
       if( slipping ){
-        fx8 x_smoke = xWheel > 0 ? lx_wheel-1-(xors_smoke.next()&7) : rx_wheel+1+(xors_smoke.next()&7);
+        lr[ xWheel > 0 ? 0:1 ] = true;
+      }
+      if( brake ){
+        lr[0] = lr[1] = true;
+      }
+      for( int ii=0 ; ii<2 ; ++ii ){
+        if( ! lr[ii] )  continue;
+
+        const fx8 x_smoke = ii == 0 ? lx_wheel-1-(xors_smoke.next()&7) : rx_wheel+1+(xors_smoke.next()&7);
         spr(
           SPR_SMOKE + (xors_smoke.next()&3) ,
           x_smoke,yy+3-yoff,
@@ -755,6 +786,7 @@ static  RaceApp  app;
 
 bool  Obj::chkIfCollide(){
 return false;
+  if( !isCollidable ) return  false;
   if( this->z > 15 )  return  false;
   if( this->z < 0  )  return  false;
   if( this->x + this->hw < app.xCar - HW_CAR )  return  false;
