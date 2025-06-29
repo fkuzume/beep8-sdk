@@ -47,6 +47,38 @@ namespace {
   static  constexpr auto  flushAnimUsual  = to_array<pico8::Color>({BLACK});
   static  constexpr auto  flushAnimBurnt  = to_array<pico8::Color>({RED,BLACK,ORANGE,RED,BLACK,RED,BLACK,ORANGE,ORANGE,ORANGE,DARK_BLUE,ORANGE,RED,ORANGE,ORANGE,RED,BLACK});
 
+  struct  Point {
+    fx12 x;
+    fx12 y;
+    Point(fx12 x_,fx12 y_ )
+      : x(x_), y(y_)
+    {}
+    Point(){}
+
+    Point operator+(Point const& rhs) const {
+      return Point{x + rhs.x, y + rhs.y};
+    }
+
+    Point& operator+=(Point const& rhs) {
+      x += rhs.x;
+      y += rhs.y;
+      return *this;
+    }
+    Point operator*(fx12 s) const {
+      return Point{x * s, y * s};
+    }
+
+    Point& operator*=(fx12 s) {
+      x *= s;
+      y *= s;
+      return *this;
+    }
+  };
+
+  inline Point operator*(fx12 s, Point const& p) {
+    return p * s;
+  }
+
   static  bool  every(int x,int mask){
     return (!(x & mask)) ? true : false;
   }
@@ -71,6 +103,10 @@ namespace {
     const fx8 ix1 = to_fx8(x1+sx);
     const fx8 iy1 = to_fx8(y1);
     rectfill(ix0, iy0, ix1, iy1, color);
+  }
+
+  inline  void rectfill_fx12(const Point& p0 , const Point p1 , Color color,fx12 sx=0) {
+    rectfill_fx12(p0.x, p0.y, p1.x, p1.y, color, sx);
   }
 
   fx12 rndf12(fx12 x0, fx12 x1){
@@ -99,7 +135,7 @@ namespace {
     const fx12  div = nume / range;
     for( int z=0 ; z<NTBL ; ++z ){
       const fx12  zz(z);
-      tblz2y[ z ] = static_cast< s16 >( YPIX_BOTTOM - ( range - nume/(a*z+div) ) );
+      tblz2y[ z ] = static_cast< s16 >( YPIX_BOTTOM - ( range - nume/(a*zz+div) ) );
     }
   }
 
@@ -115,15 +151,6 @@ namespace {
   }
 
 } // local namespace
-
-struct  Point {
-  fx12 x;
-  fx12 y;
-  Point(fx12 x_,fx12 y_ )
-    : x(x_), y(y_)
-  {}
-  Point(){}
-};
 
 inline  void line_fx12( const Point& p0, const Point& p1, Color color, fx12 sx=0 ){
   const Vec pos0(
@@ -253,8 +280,8 @@ private:
       } else {
         //md.ax = rndf12( fx12(-19,100), fx12(+19,100) );
         //md.ax = rndf12( fx12(-1,100), fx12(+1,100) );
-        md.ax = rndf12( fx12(-10,100), fx12(+10,100) );
-        //md.ax = 0;
+        //md.ax = rndf12( fx12(-10,100), fx12(+10,100) );
+        md.ax = 0;
       }
     }
 
@@ -402,7 +429,7 @@ private:
     if( cnt_crash == 0 ){
       fx12 vxCar = -vx_center * fx12(873,1000); 
       const fx12 abs_vx_center = _abs( vx_center );
-      const fx12 ratio_abs_vx_center = abs_vx_center * fx12(4,1000);
+      const fx12 ratio_abs_vx_center = abs_vx_center * fx12(3,1000);
       const bool curved = abs_vx_center != 0; 
 #if 0
       const u32 btn_o = btn( BUTTON_O );
@@ -411,7 +438,6 @@ private:
       const u32 btn_o = btn( BUTTON_O );
       const u32 btn_x = true;
 #endif
-
       accel = btn_x ? true : false;
 
       if( btn( BUTTON_LEFT ) ){
@@ -691,6 +717,11 @@ private:
       } else if ( lxWheel2 > 0 ){
         lxBody = +1;
       }
+      if( slipping ){
+        --lxBody; 
+        lxBody += xors.next()&3;
+      }
+
       spr(
         SPR_MYCACR_TAIL,
         xx+lxBody,yy+yoff_bd,
@@ -826,6 +857,11 @@ void  Obj::draw(fx12 t,fx12 x_center,fx12 xCam,fx12 y){
       const fx12  xl = x_center + (-xCam + this->x - this->hw) * t;
       const Point ll( xl, y);
       const Point rr( xl + width * t, y);
+
+      const Point p0_body = ll + Point(-3,-13) * t;
+      const Point p1_body = rr + Point(+3,+13) * t;
+      rectfill_fx12(p0_body,p1_body,DARK_BLUE,X_SCREEN_OFFSET);
+
       line_fx12(ll,rr,RED,X_SCREEN_OFFSET);
     }break;
 
