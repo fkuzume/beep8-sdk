@@ -207,9 +207,6 @@ private:
   fx12    every_50_distance;
   int     cnt_every_50_distance;
 
-  fx12    every_100_distance;
-  int     cnt_every_100_distance;
-
   u16     upMapData;
   MapData mapData[ N_FIFO_MAPDATA ];
   vector< Obj > objs = std::vector< Obj >( NOBJ );
@@ -244,9 +241,6 @@ private:
 
     every_50_distance = 0;
     cnt_every_50_distance = 0;
-
-    every_100_distance = 0;
-    cnt_every_100_distance = 0;
 
     upMapData = 1;
     for( u16 nn=0 ; nn < N_FIFO_MAPDATA ; ++nn ){
@@ -322,9 +316,6 @@ private:
     if( every(cnt_every_50_distance,3) ){
       appearPole();
     }
-  }
-
-  void every100(){
   }
 
   void updatePlaying(){
@@ -403,19 +394,11 @@ private:
     distance           += vzCar;
     acc_distance       += vzCar;
     every_50_distance  += vzCar;
-    every_100_distance += vzCar;
     if( every_50_distance > EVERY_50 ){
       every_50_distance -= EVERY_50;
       ++cnt_every_50_distance;
       every50();
     }
-
-    if( every_100_distance > EVERY_100 ){
-      every_100_distance -= EVERY_100;
-      ++cnt_every_100_distance;
-      every100();
-    }
-
 #if 0
       if( cnt_every_100_distance & 3 ){;
         auto idobj = allocObj();
