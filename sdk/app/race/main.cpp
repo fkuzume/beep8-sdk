@@ -47,6 +47,10 @@ namespace {
   static  constexpr auto  flushAnimUsual  = to_array<pico8::Color>({BLACK});
   static  constexpr auto  flushAnimBurnt  = to_array<pico8::Color>({RED,BLACK,ORANGE,RED,BLACK,RED,BLACK,ORANGE,ORANGE,ORANGE,DARK_BLUE,ORANGE,RED,ORANGE,ORANGE,RED,BLACK});
 
+  static  bool  every(int x,int mask){
+    return (!(x & mask)) ? true : false;
+  }
+
   inline  const fx12 _abs(const fx12& x_ ){
     return x_ > fx12(0) ? x_ : -x_;
   }
@@ -303,6 +307,26 @@ private:
     }
   }
 
+  void appearPole(){
+    auto idobj = allocObj();
+    if( !idobj )  return;
+
+    Obj& obj = objs[ idobj.value() ];
+    obj.drawType = Obj::Pole;
+    obj.x = W_NEAR + 30;
+    obj.z = +500;
+    obj.vz = 0;
+  }
+
+  void every50(){
+    if( every(cnt_every_50_distance,3) ){
+      appearPole();
+    }
+  }
+
+  void every100(){
+  }
+
   void updatePlaying(){
     if( score >= CLEAR_SCORE ){
       reqReset = GameState::Clear;
@@ -383,12 +407,16 @@ private:
     if( every_50_distance > EVERY_50 ){
       every_50_distance -= EVERY_50;
       ++cnt_every_50_distance;
+      every50();
     }
 
     if( every_100_distance > EVERY_100 ){
       every_100_distance -= EVERY_100;
       ++cnt_every_100_distance;
+      every100();
+    }
 
+#if 0
       if( cnt_every_100_distance & 3 ){;
         auto idobj = allocObj();
         if( idobj ){
@@ -435,20 +463,22 @@ private:
           obj.drawType = Obj::Bridge;
         }
         #endif
-      }
 
       #if 1
-      auto idobj = allocObj();
-      if( idobj ){
-        Obj& obj = objs[ idobj.value() ];
-        obj.x = -40;
-        obj.z = +500;
-        //obj.vz = fx12(3000,4096);
-        obj.vz = 0;
-        obj.drawType = Obj::Car;
+      {
+        auto idobj = allocObj();
+        if( idobj ){
+          Obj& obj = objs[ idobj.value() ];
+          obj.x = -40;
+          obj.z = +500;
+          //obj.vz = fx12(3000,4096);
+          obj.vz = 0;
+          obj.drawType = Obj::Car;
+        }
       }
       #endif
     }
+#endif
 
     MapData& md = mapData[ upMapData ];
     if( distance > md.distance ){
