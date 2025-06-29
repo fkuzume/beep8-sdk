@@ -904,23 +904,23 @@ void  Obj::draw(fx12 t,fx12 x_center,fx12 xCam,fx12 y){
     }break;
 
     case  Bridge:{
-      const fx12  height = 130 * t;
+      const fx12  hi = 130 * t;
       const fx12  xl = x_center + (-xCam + this->x) * t;
       const fx12 width = W_NEAR *  fx12(1200,1000);
 
       line_fx12(
         xl - width*t,
-        y  - height ,
+        y  - hi ,
 
         xl + width*t,
-        y  - height ,
+        y  - hi ,
         DARK_GREY,
         X_SCREEN_OFFSET
       );
 
       line_fx12(
         xl - width*t,
-        y  - height ,
+        y  - hi ,
 
         xl - width*t,
         y,
@@ -930,7 +930,7 @@ void  Obj::draw(fx12 t,fx12 x_center,fx12 xCam,fx12 y){
 
       line_fx12(
         xl + width*t,
-        y  - height ,
+        y  - hi ,
 
         xl + width*t,
         y,
