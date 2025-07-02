@@ -27,6 +27,7 @@ namespace {
   constexpr fx12 W_NEAR = 200;
 
   constexpr fx12 VZ_ENABLE_WHEEL = fx12(1000,4096);
+  constexpr fx12 VZ_OUTSIDE_FRICTION = fx12(4000,4096);
 
   constexpr fx12 EVERY_50   = 50;
   constexpr fx12 EVERY_100  = 100;
@@ -189,6 +190,12 @@ struct  Obj {
     Bridge
   };
   DrawType drawType = Nothing;
+
+  enum CatType : uint8_t {
+    TailLine,
+    TailLR,
+  };
+  CatType carType = TailLine;
   Color color[2];
 
   fx12 x = 0;
@@ -220,6 +227,7 @@ class RaceApp : public Pico8 {
   fx12 vz_friction;
   bool  slipping;
   bool  brake;
+  bool  out_of_roadside;
 public:
   int cnt_crash = 0;
   int cnt_clear = 0;
@@ -262,6 +270,7 @@ private:
 
     slipping = false;
     brake = false;
+    out_of_roadside = false;
     vz_friction = fx12(1);
     vx_center = ax_center = 0;
     xCam = xCar = vzCar = 0;
@@ -396,6 +405,15 @@ private:
     obj.z = +500;
     obj.vz = fx12(2);
     obj.drawType = Obj::Car;
+
+    static const Obj::CatType carTypes[] = {
+#if 0
+      Obj::TailLine, Obj::TailLR,
+#else
+      Obj::TailLR, Obj::TailLR,
+#endif
+    };
+    obj.carType = rndt( carTypes );
   }
 
   void every50(){
@@ -429,7 +447,7 @@ private:
     if( cnt_crash == 0 ){
       fx12 vxCar = -vx_center * fx12(873,1000); 
       const fx12 abs_vx_center = _abs( vx_center );
-      const fx12 ratio_abs_vx_center = abs_vx_center * fx12(3,1000);
+      const fx12 ratio_abs_vx_center = abs_vx_center * fx12(2,1000);
       const bool curved = abs_vx_center != 0; 
 #if 0
       const u32 btn_o = btn( BUTTON_O );
@@ -440,15 +458,14 @@ private:
 #endif
       accel = btn_x ? true : false;
 
+      bool l_or_r = false;
       if( btn( BUTTON_LEFT ) ){
-        if( curved && accel ) vz_friction = VZ_FRIC_CURVED - ratio_abs_vx_center;
-        rot_handle = true;
+        l_or_r = true;
         vxCar = -8;
         --xWheel;
         --xWheel;
       } else if( btn( BUTTON_RIGHT ) ){
-        if( curved && accel ) vz_friction = VZ_FRIC_CURVED - ratio_abs_vx_center;
-        rot_handle = true;
+        l_or_r = true;
         vxCar = +8;
         ++xWheel;
         ++xWheel;
@@ -459,6 +476,12 @@ private:
           --xWheel;
         }
       }
+
+      if( l_or_r ){
+        if( curved && accel ) vz_friction = VZ_FRIC_CURVED - ratio_abs_vx_center;
+        rot_handle = true;
+      }
+
       xWheel = std::clamp(xWheel,-18,+18);
 
       if( slipping ) vxCar *= VX_FRIC_SLIPPING;
@@ -482,8 +505,11 @@ private:
     }
 
     vzCar *= vz_friction;
+
+    out_of_roadside = _abs( xCar ) > W_NEAR + 7 && vzCar > fx12(1);
+    if( out_of_roadside ) vzCar *= VZ_OUTSIDE_FRICTION;
+
     if( rot_handle ){
-      //vzCar *= fx12(4061,4096);
       vzCar *= fx12(4071,4096);
     }
 
@@ -700,7 +726,13 @@ private:
       if( ((uacc_distance+77) & 0xff) == 0 ){
         ++yoff_bd;
       }
+
       if( brake ) yoff_bd += xors.next()&1;
+
+      if( out_of_roadside ){
+        yoff_bd -= 2;  
+        yoff_bd += xors.next()&3;
+      }
 
       spr(
         SPR_MYCACR_FRONT_WHEEL+anm,
@@ -712,6 +744,11 @@ private:
       );
 
       int lxBody = 0;
+      if( out_of_roadside ){
+        if( xors.next() & 1 ) ++lxBody;
+        if( xors.next() & 1 ) --lxBody;
+      }
+
       if( lxWheel2 < 0 ){
         lxBody = -1;
       } else if ( lxWheel2 > 0 ){
@@ -746,24 +783,25 @@ private:
         rx_wheel,yy+3-yoff
       );
 
-      static  Xorshift32 xors_smoke;
-
       bool lr[2] = {false,false};
-      if( slipping ){
-        lr[ xWheel > 0 ? 0:1 ] = true;
+
+      if( out_of_roadside ){
+        lr[0] = xors.next() & 3 ? true : false;
+        lr[1] = xors.next() & 3 ? true : false;
       }
-      if( brake ){
-        lr[0] = lr[1] = true;
-      }
+
+      if( slipping )  lr[ xWheel > 0 ? 0:1 ] = true;
+      if( brake )     lr[0] = lr[1] = true;
+
       for( int ii=0 ; ii<2 ; ++ii ){
         if( ! lr[ii] )  continue;
 
-        const fx8 x_smoke = ii == 0 ? lx_wheel-1-(xors_smoke.next()&7) : rx_wheel+1+(xors_smoke.next()&7);
+        const fx8 x_smoke = ii == 0 ? lx_wheel-1-(xors.next()&7) : rx_wheel+1+(xors.next()&7);
         spr(
-          SPR_SMOKE + (xors_smoke.next()&3) ,
+          SPR_SMOKE + (xors.next()&3) ,
           x_smoke,yy+3-yoff,
           1,1,
-          xors_smoke.next()&1 ? true:false,
+          xors.next()&1 ? true:false,
           false
         );
       }
@@ -857,12 +895,27 @@ void  Obj::draw(fx12 t,fx12 x_center,fx12 xCam,fx12 y){
       const fx12  xl = x_center + (-xCam + this->x - this->hw) * t;
       const Point ll( xl, y);
       const Point rr( xl + width * t, y);
+      switch( carType ){
+        case  TailLine:{
+          const Point p0_body = ll + Point(-3,-13) * t;
+          const Point p1_body = rr + Point(+3,+13) * t;
+          rectfill_fx12(p0_body,p1_body,DARK_BLUE,X_SCREEN_OFFSET);
+          line_fx12(ll,rr,RED,X_SCREEN_OFFSET);
+        }break;
+        case  TailLR:{
+          const Point p0_body = ll + Point(-3,-27) * t;
+          const Point p1_body = rr + Point(+3, -1) * t;
+          rectfill_fx12(p0_body,p1_body,DARK_BLUE,X_SCREEN_OFFSET);
 
-      const Point p0_body = ll + Point(-3,-13) * t;
-      const Point p1_body = rr + Point(+3,+13) * t;
-      rectfill_fx12(p0_body,p1_body,DARK_BLUE,X_SCREEN_OFFSET);
+          const Point l_red_p0 = ll + (Point(+5,-11) + Point(-4,-4)) * t;
+          const Point l_red_p1 = ll + (Point(+5,-11) + Point(+4,+4)) * t;
+          rectfill_fx12(l_red_p0,l_red_p1,RED,X_SCREEN_OFFSET);
 
-      line_fx12(ll,rr,RED,X_SCREEN_OFFSET);
+          const Point r_red_p0 = rr + (Point(-5,-11) + Point(-4,-4)) * t;
+          const Point r_red_p1 = rr + (Point(-5,-11) + Point(+4,+4)) * t;
+          rectfill_fx12(r_red_p0,r_red_p1,RED,X_SCREEN_OFFSET);
+        }break;
+      }
     }break;
 
     case  Pole:{
@@ -895,9 +948,8 @@ void  Obj::draw(fx12 t,fx12 x_center,fx12 xCam,fx12 y){
     
     case  Signboard:{
       const fx12  xl = x_center + (-xCam + this->x) * t;
-
-      const fx12 tx40 = 40 * t;
-      const fx12 tx20 = 20 * t;
+      const fx12  tx40 = 40 * t;
+      const fx12  tx20 = 20 * t;
 
       line_fx12(
         xl - tx40,
@@ -964,7 +1016,7 @@ void  Obj::draw(fx12 t,fx12 x_center,fx12 xCam,fx12 y){
     case  Bridge:{
       const fx12  hi = 130 * t;
       const fx12  xl = x_center + (-xCam + this->x) * t;
-      const fx12 width = W_NEAR *  fx12(1200,1000);
+      const fx12  width = W_NEAR *  fx12(1200,1000);
 
       line_fx12(
         xl - width*t,
@@ -996,7 +1048,6 @@ void  Obj::draw(fx12 t,fx12 x_center,fx12 xCam,fx12 y){
         X_SCREEN_OFFSET
       );
     }break;
-
     case  Nothing:
       break;
   }
