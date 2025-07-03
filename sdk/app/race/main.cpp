@@ -415,6 +415,16 @@ private:
       Obj::TailLR1, Obj::TailLR1,
 #endif
     };
+
+    static const Color colors[] = {
+      DARK_BLUE,DARK_BLUE,
+      DARK_BLUE,DARK_BLUE,
+      DARK_BLUE,DARK_BLUE,
+      DARK_BLUE,DARK_BLUE,
+      DARK_PURPLE,DARK_GREY,DARK_GREY
+    };
+    obj.color[0] = rndt( colors );
+
     obj.carType = rndt( carTypes );
   }
 
@@ -901,13 +911,14 @@ void  Obj::draw(fx12 t,fx12 x_center,fx12 xCam,fx12 y){
         case  TailLine:{
           const Point p0_body = ll + Point(-3,-13) * t;
           const Point p1_body = rr + Point(+3,+13) * t;
-          rectfill_fx12(p0_body,p1_body,DARK_BLUE,X_SCREEN_OFFSET);
+          rectfill_fx12(p0_body,p1_body,color[0],X_SCREEN_OFFSET);
           line_fx12(ll,rr,RED,X_SCREEN_OFFSET);
         }break;
+
         case  TailLR0:{
           const Point p0_body = ll + Point(-3,-27) * t;
           const Point p1_body = rr + Point(+3, -1) * t;
-          rectfill_fx12(p0_body,p1_body,DARK_BLUE,X_SCREEN_OFFSET);
+          rectfill_fx12(p0_body,p1_body,color[0],X_SCREEN_OFFSET);
 
           static  const Point aa =  Point(+5,-11) + Point(-4,-5);
           const Point l_red_p0 = ll + aa * t;
@@ -925,7 +936,7 @@ void  Obj::draw(fx12 t,fx12 x_center,fx12 xCam,fx12 y){
         case  TailLR1:{
           const Point p0_body = ll + Point(-5,-35) * t;
           const Point p1_body = rr + Point(+5, -1) * t;
-          rectfill_fx12(p0_body,p1_body,DARK_GREY,X_SCREEN_OFFSET);
+          rectfill_fx12(p0_body,p1_body,color[0],X_SCREEN_OFFSET);
 
           static  const Point aa =  Point(+5,-13) + Point(-4,-5);
           Point l_red_p0 = ll + aa * t;
