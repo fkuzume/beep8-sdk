@@ -921,10 +921,11 @@ void  Obj::draw(fx12 t,fx12 x_center,fx12 xCam,fx12 y){
           const Point r_red_p1 = rr + dd * t;
           rectfill_fx12(r_red_p0,r_red_p1,RED,X_SCREEN_OFFSET);
         }break;
+
         case  TailLR1:{
           const Point p0_body = ll + Point(-5,-35) * t;
           const Point p1_body = rr + Point(+5, -1) * t;
-          rectfill_fx12(p0_body,p1_body,DARK_PURPLE,X_SCREEN_OFFSET);
+          rectfill_fx12(p0_body,p1_body,DARK_GREY,X_SCREEN_OFFSET);
 
           static  const Point aa =  Point(+5,-13) + Point(-4,-5);
           Point l_red_p0 = ll + aa * t;
