@@ -193,7 +193,8 @@ struct  Obj {
 
   enum CatType : uint8_t {
     TailLine,
-    TailLR,
+    TailLR0,
+    TailLR1,
   };
   CatType carType = TailLine;
   Color color[2];
@@ -408,9 +409,10 @@ private:
 
     static const Obj::CatType carTypes[] = {
 #if 0
-      Obj::TailLine, Obj::TailLR,
+      Obj::TailLine, Obj::TailLR0,
 #else
-      Obj::TailLR, Obj::TailLR,
+      //Obj::TailLR0, Obj::TailLR0,
+      Obj::TailLR1, Obj::TailLR1,
 #endif
     };
     obj.carType = rndt( carTypes );
@@ -902,17 +904,47 @@ void  Obj::draw(fx12 t,fx12 x_center,fx12 xCam,fx12 y){
           rectfill_fx12(p0_body,p1_body,DARK_BLUE,X_SCREEN_OFFSET);
           line_fx12(ll,rr,RED,X_SCREEN_OFFSET);
         }break;
-        case  TailLR:{
+        case  TailLR0:{
           const Point p0_body = ll + Point(-3,-27) * t;
           const Point p1_body = rr + Point(+3, -1) * t;
           rectfill_fx12(p0_body,p1_body,DARK_BLUE,X_SCREEN_OFFSET);
 
-          const Point l_red_p0 = ll + (Point(+5,-11) + Point(-4,-4)) * t;
-          const Point l_red_p1 = ll + (Point(+5,-11) + Point(+4,+4)) * t;
+          static  const Point aa =  Point(+5,-11) + Point(-4,-5);
+          const Point l_red_p0 = ll + aa * t;
+          static  const Point bb =  Point(+5,-11) + Point(+4,+5);
+          const Point l_red_p1 = ll + bb * t;
           rectfill_fx12(l_red_p0,l_red_p1,RED,X_SCREEN_OFFSET);
 
-          const Point r_red_p0 = rr + (Point(-5,-11) + Point(-4,-4)) * t;
-          const Point r_red_p1 = rr + (Point(-5,-11) + Point(+4,+4)) * t;
+          static  const Point cc = Point(-5,-11) + Point(-4,-5);
+          const Point r_red_p0 = rr + cc * t;
+          static  const Point dd = Point(-5,-11) + Point(+4,+5);
+          const Point r_red_p1 = rr + dd * t;
+          rectfill_fx12(r_red_p0,r_red_p1,RED,X_SCREEN_OFFSET);
+        }break;
+        case  TailLR1:{
+          const Point p0_body = ll + Point(-5,-35) * t;
+          const Point p1_body = rr + Point(+5, -1) * t;
+          rectfill_fx12(p0_body,p1_body,DARK_PURPLE,X_SCREEN_OFFSET);
+
+          static  const Point aa =  Point(+5,-13) + Point(-4,-5);
+          Point l_red_p0 = ll + aa * t;
+          static  const Point bb =  Point(+5,-13) + Point(+4,+5);
+          Point l_red_p1 = ll + bb * t;
+
+          const fx12 dist = 10*t;
+
+          rectfill_fx12(l_red_p0,l_red_p1,RED,X_SCREEN_OFFSET);
+          l_red_p0.x += dist;
+          l_red_p1.x += dist;
+          rectfill_fx12(l_red_p0,l_red_p1,RED,X_SCREEN_OFFSET);
+
+          static  const Point cc = Point(-5,-13) + Point(-4,-5);
+          Point r_red_p0 = rr + cc * t;
+          static  const Point dd = Point(-5,-13) + Point(+4,+5);
+          Point r_red_p1 = rr + dd * t;
+          rectfill_fx12(r_red_p0,r_red_p1,RED,X_SCREEN_OFFSET);
+          r_red_p0.x -= dist;
+          r_red_p1.x -= dist;
           rectfill_fx12(r_red_p0,r_red_p1,RED,X_SCREEN_OFFSET);
         }break;
       }
