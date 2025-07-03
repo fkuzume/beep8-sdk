@@ -290,8 +290,8 @@ private:
       } else {
         //md.ax = rndf12( fx12(-19,100), fx12(+19,100) );
         //md.ax = rndf12( fx12(-1,100), fx12(+1,100) );
-        //md.ax = rndf12( fx12(-10,100), fx12(+10,100) );
-        md.ax = 0;
+        md.ax = rndf12( fx12(-10,100), fx12(+10,100) );
+        //md.ax = 0;
       }
     }
 
@@ -421,6 +421,8 @@ private:
       DARK_BLUE,DARK_BLUE,
       DARK_BLUE,DARK_BLUE,
       DARK_BLUE,DARK_BLUE,
+      BLACK, BLACK,
+      BLACK, BLACK,
       DARK_PURPLE,DARK_GREY,DARK_GREY
     };
     obj.color[0] = rndt( colors );
@@ -937,6 +939,10 @@ void  Obj::draw(fx12 t,fx12 x_center,fx12 xCam,fx12 y){
           const Point p0_body = ll + Point(-5,-35) * t;
           const Point p1_body = rr + Point(+5, -1) * t;
           rectfill_fx12(p0_body,p1_body,color[0],X_SCREEN_OFFSET);
+
+          const Point p2_body = ll + Point(+10,-43) * t;
+          const Point p3_body = rr + Point(-10,-30) * t;
+          rectfill_fx12(p2_body,p3_body,color[0],X_SCREEN_OFFSET);
 
           static  const Point aa =  Point(+5,-13) + Point(-4,-5);
           Point l_red_p0 = ll + aa * t;
