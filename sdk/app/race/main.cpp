@@ -227,6 +227,8 @@ class RaceApp : public Pico8 {
   fx12 ax_center;
   fx12 vx_center;
   fx12 vz_friction;
+  fx12 star_x_center;
+
   bool  slipping;
   bool  brake;
   bool  out_of_roadside;
@@ -275,6 +277,7 @@ private:
     out_of_roadside = false;
     vz_friction = fx12(1);
     vx_center = ax_center = 0;
+    star_x_center = 0;
     xCam = xCar = vzCar = 0;
     xWheel = 0;
     acc_distance = distance = 0;
@@ -824,6 +827,25 @@ private:
     }
   }
 
+  void  drawStars(){
+    Xorshift32 xors_stars;
+    static  constexpr size_t  NSTARS = 17;
+    star_x_center -= vx_center; 
+
+    static  constexpr Color tbl[] = {
+      DARK_BLUE,DARK_GREY , DARK_BLUE, DARK_BLUE
+    };
+
+    for( size_t ns=0 ; ns<NSTARS ; ++ns ){
+      pset(
+        ((static_cast< uint32_t >( star_x_center ) + xors_stars.next()) >> (ns&3)) & 127,
+        qmod( xors_stars.next() , YPIX_TOP-7 ),
+        tbl[ ns & 3 ]
+      );
+      if( ns == NSTARS>>1 && ((frame>>6) &1) )  xors_stars.next();
+    } 
+  }
+
   void _draw() override {
     // Enable or disable the debug string output via dprint().
     dprintenable(false);
@@ -859,6 +881,7 @@ private:
     setz(1);
     camera();
     setz(maxz());
+    drawStars();
 
     cursor(2,2);
     print( "%d km/h   ",vzCar.raw_value()>>7);
