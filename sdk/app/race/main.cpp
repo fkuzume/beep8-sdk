@@ -195,6 +195,7 @@ struct  Obj {
     TailLine,
     TailLR0,
     TailLR1,
+    Truck0,
   };
   CatType carType = TailLine;
   Color color[2];
@@ -412,7 +413,8 @@ private:
       Obj::TailLine, Obj::TailLR0,
 #else
       //Obj::TailLR0, Obj::TailLR0,
-      Obj::TailLR1, Obj::TailLR1,
+      //Obj::TailLR1, Obj::TailLR1,
+      Obj::Truck0, Obj::Truck0,
 #endif
     };
 
@@ -425,9 +427,8 @@ private:
       BLACK, BLACK,
       DARK_PURPLE,DARK_GREY,DARK_GREY
     };
-    obj.color[0] = rndt( colors );
-
-    obj.carType = rndt( carTypes );
+    obj.color[0]  = rndt( colors );
+    obj.carType   = rndt( carTypes );
   }
 
   void every50(){
@@ -963,6 +964,24 @@ void  Obj::draw(fx12 t,fx12 x_center,fx12 xCam,fx12 y){
           rectfill_fx12(r_red_p0,r_red_p1,RED,X_SCREEN_OFFSET);
           r_red_p0.x -= dist;
           r_red_p1.x -= dist;
+          rectfill_fx12(r_red_p0,r_red_p1,RED,X_SCREEN_OFFSET);
+        }break;
+
+        case  Truck0:{
+          const Point p0_body = ll + Point(-3,-75) * t;
+          const Point p1_body = rr + Point(+3, -7) * t;
+          rectfill_fx12(p0_body,p1_body,color[0],X_SCREEN_OFFSET);
+
+          static  const Point aa =  Point(+5,-2) + Point(-4,-5);
+          const Point l_red_p0 = ll + aa * t;
+          static  const Point bb =  Point(+5,-2) + Point(+4,+7);
+          const Point l_red_p1 = ll + bb * t;
+          rectfill_fx12(l_red_p0,l_red_p1,RED,X_SCREEN_OFFSET);
+
+          static  const Point cc = Point(-5,-2) + Point(-4,-5);
+          const Point r_red_p0 = rr + cc * t;
+          static  const Point dd = Point(-5,-2) + Point(+4,+7);
+          const Point r_red_p1 = rr + dd * t;
           rectfill_fx12(r_red_p0,r_red_p1,RED,X_SCREEN_OFFSET);
         }break;
       }
