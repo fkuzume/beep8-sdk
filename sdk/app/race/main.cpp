@@ -93,6 +93,10 @@ namespace {
     return x_ > fx12(0) ? x_ : -x_;
   }
 
+  inline  const fx12 _sgn(fx12 x) {
+    return (x > fx12(0)) ? fx12(1) : (x < fx12(0)) ? fx12(-1) : fx12(1);
+  }
+
   inline fx8 to_fx8(fx12 v){ return static_cast<fx8>(v); }
 
   inline  void line_fx12(fx12 x0, fx12 y0, fx12 x1, fx12 y1, Color color,fx12 sx=0) {
@@ -407,12 +411,14 @@ private:
   }
 
   void  appearRoadReflector(){
+    if( abs( ax_center.raw_value() ) < 100 )  return;
+
     auto idobj = allocObj();
     if( !idobj )  return;
 
     Obj& obj = objs[ idobj.value() ];
-    obj.x = W_NEAR + 50;
-    obj.z = +500;
+    obj.x = (W_NEAR + 43) * (-_sgn( ax_center ));
+    obj.z = +200;
     obj.vz = 0;
     obj.drawType = Obj::RoadReflector;
   }
@@ -849,7 +855,7 @@ private:
   void  drawStars(){
     Xorshift32 xors_stars;
     static  constexpr size_t  NSTARS = 17;
-    star_x_center -= vx_center; 
+    star_x_center -= vx_center * vzCar * fx12(200,1000); 
 
     static  constexpr Color tbl[] = {
       DARK_BLUE,DARK_GREY , DARK_BLUE, DARK_BLUE
