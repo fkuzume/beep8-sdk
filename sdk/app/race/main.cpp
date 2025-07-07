@@ -57,6 +57,10 @@ namespace {
     {}
     Point(){}
 
+    Point operator-(Point const& rhs) const {
+      return Point{x - rhs.x, y - rhs.y};
+    }
+
     Point operator+(Point const& rhs) const {
       return Point{x + rhs.x, y + rhs.y};
     }
@@ -188,7 +192,8 @@ struct  Obj {
     RoadsideLights,
     Signboard,
     TallSignboard,
-    Bridge
+    Bridge,
+    RoadReflector
   };
   DrawType drawType = Nothing;
 
@@ -401,6 +406,17 @@ private:
     obj.drawType = Obj::Bridge;
   }
 
+  void  appearRoadReflector(){
+    auto idobj = allocObj();
+    if( !idobj )  return;
+
+    Obj& obj = objs[ idobj.value() ];
+    obj.x = W_NEAR + 50;
+    obj.z = +500;
+    obj.vz = 0;
+    obj.drawType = Obj::RoadReflector;
+  }
+
   void  appearCar(){
     auto idobj = allocObj();
     if( !idobj )  return;
@@ -455,6 +471,8 @@ private:
     if( every( xors.next(), 63) ){
       appearBridge();
     }
+
+    appearRoadReflector();
   }
 
   void updateMyCar(){
@@ -1107,6 +1125,18 @@ void  Obj::draw(fx12 t,fx12 x_center,fx12 xCam,fx12 y){
         color[0],
         X_SCREEN_OFFSET
       );
+    }break;
+
+    case  RoadReflector:{
+      const fx12  xl = x_center + (-xCam + this->x) * t;
+      const Point p0(xl,y);
+      const Point p1(xl,y-27*t);
+
+      line_fx12(p0,p1,WHITE,X_SCREEN_OFFSET);
+
+      Point a0 = p1 - Point(5,7)*t;
+      Point a1 = p1 + Point(5,7)*t;
+      rectfill_fx12(a0,a1,ORANGE,X_SCREEN_OFFSET);
     }break;
 
     case  Bridge:{
