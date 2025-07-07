@@ -16,6 +16,7 @@ namespace {
   constexpr int SPR_MYCACR_FRONT_WHEEL  = 32;
   constexpr int SPR_MYCACR_REAR_WHEEL   = 16;
   constexpr int SPR_SMOKE = 64;
+  constexpr int SPR_MOON = 80;
 
   constexpr int OTZ_ROAD = 15;
   constexpr int OTZ_OBJ  = 14;
@@ -844,6 +845,9 @@ private:
       );
       if( ns == NSTARS>>1 && ((frame>>6) &1) )  xors_stars.next();
     } 
+
+    // moon
+    spr(SPR_MOON,static_cast<int>(star_x_center>>2)+37,13,2,2);
   }
 
   void _draw() override {
