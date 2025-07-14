@@ -880,6 +880,10 @@ private:
         }
       }
     }
+
+    if( cnt_crash > 2*60 ){
+      reqReset = GameState::Title;
+    }
   }
 
   void  drawStars(){
