@@ -3,6 +3,14 @@
 
 using namespace std;  
 using namespace pico8;  
+/*
+  TODO: 追い抜いた車のScore
+  TODO: HI-Score
+  TODO: 左右崖
+  TODO: 表示優先順位
+  TODO: CenterLine
+  TODO: FakeFog
+*/
 namespace {
   constexpr BgTiles XTILES = TILES_32;
   constexpr BgTiles YTILES = TILES_32;
@@ -17,10 +25,12 @@ namespace {
   constexpr int SPR_MYCACR_REAR_WHEEL   = 16;
   constexpr int SPR_SMOKE = 64;
   constexpr int SPR_MOON = 80;
+  constexpr int SPR_TITLE = 7*16;
 
   constexpr int OTZ_ROAD = 15;
   constexpr int OTZ_OBJ  = 14;
   constexpr int OTZ_CAR  = 3;
+  constexpr int OTZ_TITLE  = 1;
 
   constexpr fx12 YPIX_TOP    = 60;
   //constexpr fx12 YPIX_TOP    = 66;
@@ -234,6 +244,7 @@ class RaceApp : public Pico8 {
   int score = 0;
   int disp_score = 0;
   int cnt_title = 0;
+  fx8 x_title; 
   fx12 ax_center;
   fx12 vx_center;
   fx12 vz_friction;
@@ -596,7 +607,8 @@ private:
   void drawPlaying(){
     if( score != disp_score ){
       disp_score = score; 
-      print("\e[21;1H%d",disp_score);
+      cursor(12-3,20,BG_PAL_3);
+      print("SC:%d",disp_score);
     }
 
     setz(maxz());
@@ -662,6 +674,7 @@ private:
 
   void  enterTitle(){
     cnt_title = 0;
+    x_title = -500;
     print("\e[3;7H    ");
     print("\e[3q\e[13;4H HI:%d\e[0q" , hi_score );
     print("\e[15;4H SC:%d", score );
@@ -716,6 +729,7 @@ private:
 
   void  updateTitle() {
     cnt_title++;
+    x_title += -x_title/11;
     if( btnp( BUTTON_ANY ) ) reqReset = GameState::Playing;
   }
 
@@ -747,11 +761,9 @@ private:
   }
 
   void  drawMyCar(){
+    auto xx = to_fx8(xCar - xCam + 64 - 16 );
+    auto yy = to_fx8(YPIX_BOTTOM - 12);
     if( cnt_crash == 0 ){
-
-      auto xx = to_fx8( xCar - xCam + 64 - 16 );
-      auto yy = to_fx8(YPIX_BOTTOM - 12);
-
       setz(1);
 
       const int lxWheel  = xWheel>>1;
@@ -849,6 +861,24 @@ private:
         );
       }
     } else {
+      static const Color colors[] = {RED,RED,RED,YELLOW,YELLOW,WHITE,BROWN,ORANGE};
+
+      constexpr int mx = 50;
+      int cnt = std::min(cnt_crash,mx);
+
+      if( cnt < mx ){
+        for( int nn=0 ; nn< 7 ; ++nn){
+          rectfill(
+            rndf(xx-7-cnt,xx+7+cnt)+4,
+            rndf(yy-5-cnt, yy+cnt)+4,
+
+            rndf(xx+16-7-cnt,xx+16+7+cnt)+4,
+            rndf(yy+1-cnt, yy+4+cnt)+4,
+            
+            rndt( colors )
+          );
+        }
+      }
     }
   }
 
@@ -872,6 +902,13 @@ private:
 
     // moon
     spr(SPR_MOON,static_cast<int>(star_x_center>>2)+37,13,2,2);
+  }
+
+  void  drawTitle(){
+    setz( OTZ_TITLE );
+
+    spr(SPR_TITLE,x_title,    0,16,7);
+    spr(SPR_TITLE,x_title+128,0,16,7);
   }
 
   void _draw() override {
@@ -901,6 +938,7 @@ private:
       case  GameState::Nil:
       case  GameState::Title:{
         camera();
+        drawTitle();
       }break;
       case  GameState::Playing:{
         drawPlaying();
@@ -911,8 +949,8 @@ private:
     setz(maxz());
     drawStars();
 
-    cursor(2,2);
-    print( "%d km/h   ",vzCar.raw_value()>>7);
+    cursor(0,20,BG_PAL_2);
+    print( "%d km/h ",vzCar.raw_value()>>7);
   }
 public: virtual ~RaceApp(){}
 };
@@ -920,7 +958,6 @@ public: virtual ~RaceApp(){}
 static  RaceApp  app;
 
 bool  Obj::chkIfCollide(){
-return false;
   if( !isCollidable ) return  false;
   if( this->z > 15 )  return  false;
   if( this->z < 0  )  return  false;
