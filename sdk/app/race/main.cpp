@@ -4,12 +4,14 @@
 using namespace std;  
 using namespace pico8;  
 /*
+  TODO: TITLE画面
   TODO: 追い抜いた車のScore
   TODO: HI-Score
   TODO: 左右崖
   TODO: 表示優先順位
   TODO: CenterLine
   TODO: FakeFog
+  TODO: ブレーキ
 */
 namespace {
   constexpr BgTiles XTILES = TILES_32;
@@ -290,6 +292,7 @@ private:
   void  enterPlaying(){
     print("\e[2J");
     objs = std::vector< Obj >( NOBJ );
+    cnt_title = 0;
 
     flushBg.setTable( flushAnimUsual );
 
@@ -675,9 +678,24 @@ private:
   void  enterTitle(){
     cnt_title = 0;
     x_title = -500;
+    print("\e[2J");
     print("\e[3;7H    ");
     print("\e[3q\e[13;4H HI:%d\e[0q" , hi_score );
     print("\e[15;4H SC:%d", score );
+
+    print("\e[18;4H", score );
+
+    int yy=19;
+
+    print("\e[%d;1HBRAKE: Z/X KEY",yy);
+    yy+=2;
+
+    print("\e[%d;1HTURN: ARROW",yy);
+    yy+=2;
+
+    print("\e[%d;1HTOUCH: SWIPE",yy);
+    yy+=2;
+
     flushBg.setTable( flushAnimUsual );
   }
 
@@ -897,7 +915,7 @@ private:
 
     for( size_t ns=0 ; ns<NSTARS ; ++ns ){
       pset(
-        ((static_cast< uint32_t >( star_x_center ) + xors_stars.next()) >> (ns&3)) & 127,
+        (-(cnt_title>>1) + ((static_cast< uint32_t >( star_x_center ) + xors_stars.next()) >> (ns&3))) & 127,
         qmod( xors_stars.next() , YPIX_TOP-7 ),
         tbl[ ns & 3 ]
       );
@@ -905,7 +923,7 @@ private:
     } 
 
     // moon
-    spr(SPR_MOON,static_cast<int>(star_x_center>>2)+37,13,2,2);
+    spr(SPR_MOON,static_cast<int>(star_x_center>>2)+37+(((-cnt_title>>1)&0xff)-50),13,2,2);
   }
 
   void  drawTitle(){
@@ -946,6 +964,10 @@ private:
       }break;
       case  GameState::Playing:{
         drawPlaying();
+        setz(1);
+        camera();
+        cursor(0,20,BG_PAL_2);
+        print( "%d km/h ",vzCar.raw_value()>>7);
       }break;
     }
     setz(1);
@@ -953,8 +975,6 @@ private:
     setz(maxz());
     drawStars();
 
-    cursor(0,20,BG_PAL_2);
-    print( "%d km/h ",vzCar.raw_value()>>7);
   }
 public: virtual ~RaceApp(){}
 };
