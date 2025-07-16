@@ -922,9 +922,13 @@ private:
 
   void  drawTitle(){
     setz( OTZ_TITLE );
-
     spr(SPR_TITLE,x_title,    0,16,7);
     spr(SPR_TITLE,x_title+128,0,16,7);
+
+    if( ((cnt_title>>2) & 3) && (cnt_title>60) ){
+      scursor(64-20,70,YELLOW);
+      sprint( "[TAP]" );
+    }
   }
 
   void _draw() override {
