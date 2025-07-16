@@ -686,15 +686,9 @@ private:
     print("\e[18;4H", score );
 
     int yy=19;
-
-    print("\e[%d;1HBRAKE: Z/X KEY",yy);
-    yy+=2;
-
-    print("\e[%d;1HTURN: ARROW",yy);
-    yy+=2;
-
-    print("\e[%d;1HTOUCH: SWIPE",yy);
-    yy+=2;
+    print("\e[%d;1HBRAKE: Z/X KEY", yy); yy += 2;
+    print("\e[%d;1HTURN:  ARROW", yy); yy += 1;
+    print("\e[%d;1H       SWIPE", yy); yy += 2;
 
     flushBg.setTable( flushAnimUsual );
   }
